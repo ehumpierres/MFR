@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Book a Property{% endblock %}
+
+{% block content %}
+    <h2>Book a Property</h2>
+    <form method="POST" action="{{ url_for('book') }}" id="booking-form">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.unit_id.label }}
+            {{ form.unit_id(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.start_date.label }}
+            {{ form.start_date(class="form-control", type="date") }}
+        </div>
+        <div class="form-group">
+            {{ form.end_date.label }}
+            {{ form.end_date(class="form-control", type="date") }}
+        </div>
+        <div class="form-group">
+            {{ form.guest_name.label }}
+            {{ form.guest_name(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.guest_email.label }}
+            {{ form.guest_email(class="form-control") }}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+{% endblock %}

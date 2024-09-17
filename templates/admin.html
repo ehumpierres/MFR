@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+    <h2>Admin Panel</h2>
+    <h3>Pending Booking Requests</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Property</th>
+                <th>Unit</th>
+                <th>Guest Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+                <tr>
+                    <td>{{ booking.unit.property.name }}</td>
+                    <td>{{ booking.unit.name }}</td>
+                    <td>{{ booking.guest_name }}</td>
+                    <td>{{ booking.start_date }}</td>
+                    <td>{{ booking.end_date }}</td>
+                    <td>
+                        <a href="{{ url_for('approve_booking', booking_id=booking.id) }}" class="btn btn-success btn-sm">Approve</a>
+                        <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
