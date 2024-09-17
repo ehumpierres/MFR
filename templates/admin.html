@@ -18,18 +18,49 @@
         </thead>
         <tbody>
             {% for booking in bookings %}
-                <tr>
+                <tr data-booking-id="{{ booking.id }}">
                     <td>{{ booking.unit.property.name }}</td>
                     <td>{{ booking.unit.name }}</td>
                     <td>{{ booking.guest_name }}</td>
                     <td>{{ booking.start_date }}</td>
                     <td>{{ booking.end_date }}</td>
                     <td>
-                        <a href="{{ url_for('approve_booking', booking_id=booking.id) }}" class="btn btn-success btn-sm">Approve</a>
+                        <a href="#" onclick="approveBooking({{ booking.id }}); return false;" class="btn btn-success btn-sm">Approve</a>
                         <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>
                     </td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <h3>Notification Emails</h3>
+    <form method="POST" action="{{ url_for('add_notification_email') }}">
+        {{ email_form.hidden_tag() }}
+        {{ email_form.email.label }} {{ email_form.email(class="form-control") }}
+        {{ email_form.submit(class="btn btn-primary") }}
+    </form>
+    <ul>
+        {% for email in notification_emails %}
+            <li>{{ email.email }} <a href="{{ url_for('remove_notification_email', email_id=email.id) }}" class="btn btn-danger btn-sm">Remove</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function approveBooking(bookingId) {
+    fetch(`/approve/${bookingId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            // Remove the booking from the pending list
+            document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
+            // Display a success message
+            alert('Booking approved successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while approving the booking');
+        });
+}
+</script>
 {% endblock %}

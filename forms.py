@@ -13,3 +13,7 @@ class BookingForm(FlaskForm):
     guest_name = StringField('Guest Name', validators=[DataRequired()])
     guest_email = StringField('Guest Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Submit Booking Request')
+
+class NotificationEmailForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Add Email')

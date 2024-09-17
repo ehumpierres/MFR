@@ -8,9 +8,18 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         events: '/api/bookings/' + propertyId,
-        eventColor: '#378006',
         eventClick: function(info) {
             alert('Booking: ' + info.event.title);
+        },
+        eventContent: function(arg) {
+            let italicEl = document.createElement('i')
+            if (arg.event.extendedProps.status === 'pending') {
+                italicEl.innerHTML = 'PENDING - ' + arg.event.title
+            } else {
+                italicEl.innerHTML = arg.event.title
+            }
+            let arrayOfDomNodes = [ italicEl ]
+            return { domNodes: arrayOfDomNodes }
         }
     });
     calendar.render();

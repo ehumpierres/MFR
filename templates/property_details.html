@@ -17,10 +17,33 @@
         {% endfor %}
     </ul>
 
+    <a href="{{ url_for('book') }}" class="btn btn-primary">Make a Booking</a>
+    <br><br>
+
     <h3>Booking Calendar</h3>
     <div id='calendar'></div>
 
-    <a href="{{ url_for('book') }}" class="btn btn-primary">Make a Booking</a>
+    <h3>Upcoming Bookings</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Unit</th>
+                <th>Guest Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in upcoming_bookings %}
+                <tr>
+                    <td>{{ booking.unit.name }}</td>
+                    <td>{{ booking.guest_name }}</td>
+                    <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
 
 {% block extra_js %}

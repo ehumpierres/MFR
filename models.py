@@ -15,6 +15,9 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def is_admin(self):
+        return self.username == 'admin'
+
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -35,3 +38,7 @@ class Booking(db.Model):
     guest_name = db.Column(db.String(100), nullable=False)
     guest_email = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(20), nullable=False)
+
+class NotificationEmail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
