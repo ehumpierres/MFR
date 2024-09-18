@@ -13,9 +13,9 @@ class BookingForm(FlaskForm):
     guest_name = StringField('Guest Name', validators=[DataRequired()])
     guest_email = StringField('Guest Email', validators=[DataRequired(), Email()])
     num_guests = IntegerField('Number of Guests', validators=[DataRequired(), NumberRange(min=1, message="Must be at least 1")])
-    catering_option = SelectField('Will you be directly booking your own caterer or bringing your own food?', 
-                                  choices=[('Catering', 'Catering'), ('Bring own food', 'Bring own food')],
-                                  validators=[DataRequired()])
+    catering_option = RadioField('Will you be directly booking your own caterer or bringing your own food?', 
+                                 choices=[('Catering', 'Catering'), ('Bring own food', 'Bring own food')],
+                                 validators=[DataRequired()])
     special_requests = TextAreaField('Special Requests')
     mobility_impaired = RadioField('Is anyone in your party mobility impaired?', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
     event_manager_contact = StringField('Event manager/on-site emergency contact. Name, phone number, and email address:', validators=[DataRequired()])
