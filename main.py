@@ -139,7 +139,7 @@ def property_details(property_id):
 @login_required
 def book():
     form = BookingForm()
-    form.unit_id.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
+    form.unit_ids.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
     if form.validate_on_submit():
         try:
             booking = Booking(
@@ -160,7 +160,8 @@ def book():
                 organization_status=form.organization_status.data,
                 status='pending'
             )
-            booking.units = [Unit.query.get(form.unit_id.data)]
+            selected_units = Unit.query.filter(Unit.id.in_(form.unit_ids.data)).all()
+            booking.units.extend(selected_units)
             db.session.add(booking)
             db.session.commit()
             notify_admins(booking)
@@ -338,36 +339,21 @@ def admin_database():
 
 def create_sample_data():
     app.logger.info("Attempting to create sample data")
-    if Property.query.first() is not None:
-        app.logger.info("Sample data already exists, skipping creation")
-        return  # Data already exists, don't create more
-
     try:
+        # Remove all existing properties and units
+        Booking.query.delete()
+        Unit.query.delete()
+        Property.query.delete()
+        db.session.commit()
+
         beach_house = Property(name="Beach House", description="A beautiful house by the beach")
         mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
         db.session.add_all([beach_house, mountain_cabin])
         db.session.commit()
 
-        beach_house_units = [
-            Unit(name="Main House", property_id=beach_house.id),
-            Unit(name="Guest House", property_id=beach_house.id),
-            Unit(name="Beach Bungalow 1", property_id=beach_house.id),
-            Unit(name="Beach Bungalow 2", property_id=beach_house.id),
-            Unit(name="Beach Bungalow 3", property_id=beach_house.id),
-            Unit(name="Poolside Suite", property_id=beach_house.id),
-            Unit(name="Oceanview Loft", property_id=beach_house.id)
-        ]
-
-        mountain_cabin_units = [
-            Unit(name="Main Cabin", property_id=mountain_cabin.id),
-            Unit(name="Treehouse Suite", property_id=mountain_cabin.id),
-            Unit(name="Hillside Cottage", property_id=mountain_cabin.id),
-            Unit(name="Lakeside Cabin", property_id=mountain_cabin.id),
-            Unit(name="Forest Retreat", property_id=mountain_cabin.id),
-            Unit(name="Mountain View Lodge", property_id=mountain_cabin.id)
-        ]
-
-        db.session.add_all(beach_house_units + mountain_cabin_units)
+        beach_house_unit = Unit(name="Main House", property_id=beach_house.id)
+        mountain_cabin_unit = Unit(name="Main Cabin", property_id=mountain_cabin.id)
+        db.session.add_all([beach_house_unit, mountain_cabin_unit])
         db.session.commit()
 
         admin_user = User(username='admin')
@@ -376,6 +362,7 @@ def create_sample_data():
         regular_user.set_password('user_passphrase')
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
+
         app.logger.info("Sample data created successfully")
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -396,6 +383,6 @@ if __name__ == '__main__':
     with app.app_context():
         test_db_connection()
         db.create_all()
+        create_sample_data()
     
-    create_sample_data()
     app.run(host='0.0.0.0', port=5000)
