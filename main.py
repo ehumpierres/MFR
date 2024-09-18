@@ -139,7 +139,7 @@ def property_details(property_id):
 @login_required
 def book():
     form = BookingForm()
-    form.unit_ids.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
+    form.unit_id.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
     if form.validate_on_submit():
         try:
             booking = Booking(
@@ -160,8 +160,7 @@ def book():
                 organization_status=form.organization_status.data,
                 status='pending'
             )
-            selected_units = Unit.query.filter(Unit.id.in_(form.unit_ids.data)).all()
-            booking.units.extend(selected_units)
+            booking.units = [Unit.query.get(form.unit_id.data)]
             db.session.add(booking)
             db.session.commit()
             notify_admins(booking)
@@ -340,7 +339,6 @@ def admin_database():
 def create_sample_data():
     app.logger.info("Attempting to create sample data")
     try:
-        # Remove all existing properties and units
         Booking.query.delete()
         Unit.query.delete()
         Property.query.delete()
