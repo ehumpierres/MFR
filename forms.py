@@ -16,7 +16,7 @@ class BookingForm(FlaskForm):
     catering_option = RadioField('Will you be directly booking your own caterer or bringing your own food?', 
                                  choices=[('Catering', 'Catering'), ('Bring own food', 'Bring own food')],
                                  validators=[DataRequired()])
-    special_requests = TextAreaField('Special Requests')
+    special_requests = TextAreaField('Special Requests (e.g., dietary restrictions, accessibility needs, or any other accommodations)')
     mobility_impaired = RadioField('Is anyone in your party mobility impaired?', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
     event_manager_contact = StringField('Event manager/on-site emergency contact. Name, phone number, and email address:', validators=[DataRequired()])
     offsite_emergency_contact = StringField('Off-site emergency contact. Name, phone number, and email address:', validators=[DataRequired()])
