@@ -160,7 +160,8 @@ def book():
                 organization_status=form.organization_status.data,
                 status='pending'
             )
-            booking.units = [Unit.query.get(form.unit_id.data)]
+            unit = Unit.query.get(form.unit_id.data)
+            booking.units.append(unit)
             db.session.add(booking)
             db.session.commit()
             notify_admins(booking)
