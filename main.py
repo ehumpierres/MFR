@@ -16,7 +16,6 @@ from sqlalchemy.pool import QueuePool
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Update database configuration to use a connection pool with retry logic
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        poolclass=QueuePool,
                        pool_size=5,
@@ -29,7 +28,6 @@ db.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Update email configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
@@ -57,7 +55,6 @@ def send_notification_email(subject, body, recipients):
         mail.send(msg)
     except Exception as e:
         app.logger.error(f"Failed to send email: {str(e)}")
-        # Continue with the application flow even if email sending fails
         pass
 
 def notify_admins(booking):
@@ -288,15 +285,56 @@ def get_bookings(property_id):
         app.logger.error(f"Unexpected error while fetching bookings: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
+@app.route('/admin/database', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_database():
+    if request.method == 'POST':
+        operation = request.form.get('operation')
+        if operation == 'add_property':
+            name = request.form.get('property_name')
+            description = request.form.get('property_description')
+            new_property = Property(name=name, description=description)
+            db.session.add(new_property)
+            db.session.commit()
+            flash('Property added successfully', 'success')
+        elif operation == 'add_unit':
+            property_id = request.form.get('property_id')
+            unit_name = request.form.get('unit_name')
+            new_unit = Unit(name=unit_name, property_id=property_id)
+            db.session.add(new_unit)
+            db.session.commit()
+            flash('Unit added successfully', 'success')
+        elif operation == 'delete_property':
+            property_id = request.form.get('property_id')
+            property_to_delete = Property.query.get(property_id)
+            if property_to_delete:
+                db.session.delete(property_to_delete)
+                db.session.commit()
+                flash('Property deleted successfully', 'success')
+            else:
+                flash('Property not found', 'error')
+        elif operation == 'delete_unit':
+            unit_id = request.form.get('unit_id')
+            unit_to_delete = Unit.query.get(unit_id)
+            if unit_to_delete:
+                db.session.delete(unit_to_delete)
+                db.session.commit()
+                flash('Unit deleted successfully', 'success')
+            else:
+                flash('Unit not found', 'error')
+    
+    properties = Property.query.all()
+    units = Unit.query.all()
+    return render_template('admin_database.html', properties=properties, units=units)
+
 def create_sample_data():
     try:
-        # Create sample properties
         beach_house = Property(name="Beach House", description="A beautiful house by the beach")
         mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
         db.session.add_all([beach_house, mountain_cabin])
         db.session.commit()
 
-        # Create sample units for Beach House (7 units)
         beach_house_units = [
             Unit(name="Main House", property_id=beach_house.id),
             Unit(name="Guest House", property_id=beach_house.id),
@@ -307,7 +345,6 @@ def create_sample_data():
             Unit(name="Oceanview Loft", property_id=beach_house.id)
         ]
 
-        # Create sample units for Mountain Cabin (6 units)
         mountain_cabin_units = [
             Unit(name="Main Cabin", property_id=mountain_cabin.id),
             Unit(name="Treehouse Suite", property_id=mountain_cabin.id),
@@ -320,7 +357,6 @@ def create_sample_data():
         db.session.add_all(beach_house_units + mountain_cabin_units)
         db.session.commit()
 
-        # Create admin and regular user
         admin_user = User(username='admin')
         admin_user.set_password('admin_passphrase')
         regular_user = User(username='user')

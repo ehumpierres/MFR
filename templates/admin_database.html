@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Database Operations{% endblock %}
+
+{% block content %}
+    <h2>Admin Database Operations</h2>
+
+    <h3>Add Property</h3>
+    <form method="POST">
+        <input type="hidden" name="operation" value="add_property">
+        <div class="form-group">
+            <label for="property_name">Property Name:</label>
+            <input type="text" class="form-control" id="property_name" name="property_name" required>
+        </div>
+        <div class="form-group">
+            <label for="property_description">Property Description:</label>
+            <textarea class="form-control" id="property_description" name="property_description" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Property</button>
+    </form>
+
+    <h3>Add Unit</h3>
+    <form method="POST">
+        <input type="hidden" name="operation" value="add_unit">
+        <div class="form-group">
+            <label for="property_id">Select Property:</label>
+            <select class="form-control" id="property_id" name="property_id" required>
+                {% for property in properties %}
+                    <option value="{{ property.id }}">{{ property.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="unit_name">Unit Name:</label>
+            <input type="text" class="form-control" id="unit_name" name="unit_name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Unit</button>
+    </form>
+
+    <h3>Delete Property</h3>
+    <form method="POST">
+        <input type="hidden" name="operation" value="delete_property">
+        <div class="form-group">
+            <label for="property_id_delete">Select Property to Delete:</label>
+            <select class="form-control" id="property_id_delete" name="property_id" required>
+                {% for property in properties %}
+                    <option value="{{ property.id }}">{{ property.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-danger">Delete Property</button>
+    </form>
+
+    <h3>Delete Unit</h3>
+    <form method="POST">
+        <input type="hidden" name="operation" value="delete_unit">
+        <div class="form-group">
+            <label for="unit_id_delete">Select Unit to Delete:</label>
+            <select class="form-control" id="unit_id_delete" name="unit_id" required>
+                {% for unit in units %}
+                    <option value="{{ unit.id }}">{{ unit.property.name }} - {{ unit.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-danger">Delete Unit</button>
+    </form>
+
+    <h3>Current Properties and Units</h3>
+    <ul>
+        {% for property in properties %}
+            <li>
+                {{ property.name }}
+                <ul>
+                    {% for unit in property.units %}
+                        <li>{{ unit.name }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
