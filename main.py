@@ -61,7 +61,7 @@ def notify_admins(booking):
     subject = f"New Booking Request: {booking.guest_name}"
     body = f"""A new booking request has been submitted:
 Guest: {booking.guest_name}
-Unit: {booking.unit.name}
+Units: {', '.join([unit.name for unit in booking.units])}
 Dates: {booking.start_date} to {booking.end_date}
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
@@ -78,8 +78,8 @@ Organization Status: {booking.organization_status}"""
     send_notification_email(subject, body, admin_emails)
 
 def notify_guest(booking):
-    subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name} - {booking.unit.name}"
-    body = f"""Your booking request for {booking.unit.property.name} - {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+    subject = f"Booking {booking.status.capitalize()}: {booking.units[0].property.name}"
+    body = f"""Your booking request for {', '.join([unit.name for unit in booking.units])} from {booking.start_date} to {booking.end_date} has been {booking.status}.
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
@@ -126,7 +126,7 @@ def logout():
 @login_required
 def property_details(property_id):
     property = Property.query.get_or_404(property_id)
-    upcoming_bookings = Booking.query.join(Unit).filter(
+    upcoming_bookings = Booking.query.join(Booking.units).filter(
         Unit.property_id == property_id,
         Booking.status == 'approved',
         Booking.start_date >= date.today()
@@ -137,11 +137,10 @@ def property_details(property_id):
 @login_required
 def book():
     form = BookingForm()
-    form.unit_id.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
+    form.unit_ids.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
     if form.validate_on_submit():
         try:
             booking = Booking(
-                unit_id=form.unit_id.data,
                 start_date=form.start_date.data,
                 end_date=form.end_date.data,
                 arrival_time=form.arrival_time.data,
@@ -159,6 +158,8 @@ def book():
                 organization_status=form.organization_status.data,
                 status='pending'
             )
+            selected_units = Unit.query.filter(Unit.id.in_(form.unit_ids.data)).all()
+            booking.units.extend(selected_units)
             db.session.add(booking)
             db.session.commit()
             notify_admins(booking)
@@ -234,7 +235,7 @@ def approve_booking(booking_id):
         notify_guest(booking)
         return jsonify({
             'id': booking.id,
-            'title': f'{booking.guest_name} - {booking.unit.name}',
+            'title': f'{booking.guest_name} - {", ".join([unit.name for unit in booking.units])}',
             'color': '#378006',
             'status': 'approved'
         })
@@ -271,11 +272,11 @@ def reject_booking(booking_id):
 @login_required
 def get_bookings(property_id):
     try:
-        bookings = Booking.query.join(Unit).filter(Unit.property_id == property_id).all()
+        bookings = Booking.query.join(Booking.units).filter(Unit.property_id == property_id).all()
         events = [
             {
                 'id': booking.id,
-                'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {booking.unit.name}',
+                'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {", ".join([unit.name for unit in booking.units])}',
                 'start': f"{booking.start_date.isoformat()}T{booking.arrival_time.isoformat()}",
                 'end': f"{booking.end_date.isoformat()}T{booking.departure_time.isoformat()}",
                 'color': '#a8d08d' if booking.status == 'pending' else '#378006',

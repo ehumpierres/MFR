@@ -28,11 +28,15 @@ class Unit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    bookings = db.relationship('Booking', backref='unit', lazy=True)
+
+booking_units = db.Table('booking_units',
+    db.Column('booking_id', db.Integer, db.ForeignKey('booking.id'), primary_key=True),
+    db.Column('unit_id', db.Integer, db.ForeignKey('unit.id'), primary_key=True)
+)
 
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
+    units = db.relationship('Unit', secondary=booking_units, lazy='subquery', backref=db.backref('bookings', lazy=True))
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     arrival_time = db.Column(db.Time, nullable=False)
