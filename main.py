@@ -356,7 +356,22 @@ def create_sample_data():
             Unit(name="Kurth Annex", property_id=cbc.id),
             Unit(name="Kurth House", property_id=cbc.id)
         ]
-        cbm_units = [Unit(name=f"CBM Unit {i}", property_id=cbm.id) for i in range(1, 7)]
+        cbm_units = [
+            Unit(name="Firemeadow - Main Lodge", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 1", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 2", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 3", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 4", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 5", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 6", property_id=cbm.id),
+            Unit(name="Firemeadow - Meadowlark", property_id=cbm.id),
+            Unit(name="Firemeadow - Mariposa", property_id=cbm.id),
+            Unit(name="Firemeadow - Magnolia", property_id=cbm.id),
+            Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
+            Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
+            Unit(name="Sunday House", property_id=cbm.id),
+            Unit(name="Barn/Office", property_id=cbm.id)
+        ]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
 
