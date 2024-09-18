@@ -138,9 +138,6 @@ def book():
     form = BookingForm()
     form.unit_id.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
     if form.validate_on_submit():
-        if form.agree_to_terms.data == 'No':
-            flash('You must agree to the terms and conditions to submit a booking request.', 'error')
-            return render_template('booking_form.html', form=form)
         try:
             booking = Booking(
                 unit_id=form.unit_id.data,
