@@ -388,7 +388,6 @@ def test_db_connection():
 if __name__ == '__main__':
     with app.app_context():
         test_db_connection()
-        db.drop_all()
         db.create_all()
         create_sample_data()
     app.run(host='0.0.0.0', port=5000)
