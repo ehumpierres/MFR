@@ -96,7 +96,9 @@ Organization Status: {booking.organization_status}"""
 @app.route('/')
 @login_required
 def index():
+    app.logger.info("Fetching properties for index page")
     properties = Property.query.all()
+    app.logger.info(f"Number of properties fetched: {len(properties)}")
     return render_template('properties.html', properties=properties)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -335,6 +337,11 @@ def admin_database():
     return render_template('admin_database.html', properties=properties, units=units)
 
 def create_sample_data():
+    app.logger.info("Attempting to create sample data")
+    if Property.query.first() is not None:
+        app.logger.info("Sample data already exists, skipping creation")
+        return  # Data already exists, don't create more
+
     try:
         beach_house = Property(name="Beach House", description="A beautiful house by the beach")
         mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
@@ -369,6 +376,7 @@ def create_sample_data():
         regular_user.set_password('user_passphrase')
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
+        app.logger.info("Sample data created successfully")
     except SQLAlchemyError as e:
         db.session.rollback()
         app.logger.error(f"Database error while creating sample data: {str(e)}")
@@ -388,5 +396,6 @@ if __name__ == '__main__':
     with app.app_context():
         test_db_connection()
         db.create_all()
-        create_sample_data()
+    
+    create_sample_data()
     app.run(host='0.0.0.0', port=5000)
