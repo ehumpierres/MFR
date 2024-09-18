@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -6,7 +7,6 @@ from forms import LoginForm, BookingForm, NotificationEmailForm
 from config import Config
 from functools import wraps
 from datetime import date
-import os
 from flask_mail import Mail, Message
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine, text
@@ -344,14 +344,14 @@ def create_sample_data():
         Property.query.delete()
         db.session.commit()
 
-        beach_house = Property(name="Beach House", description="A beautiful house by the beach")
-        mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
-        db.session.add_all([beach_house, mountain_cabin])
+        cbc = Property(name="CBC", description="Coastal Beach Club")
+        cbm = Property(name="CBM", description="Coastal Beach Meadow")
+        db.session.add_all([cbc, cbm])
         db.session.commit()
 
-        beach_house_unit = Unit(name="Main House", property_id=beach_house.id)
-        mountain_cabin_unit = Unit(name="Main Cabin", property_id=mountain_cabin.id)
-        db.session.add_all([beach_house_unit, mountain_cabin_unit])
+        cbc_units = [Unit(name=f"CBC Unit {i}", property_id=cbc.id) for i in range(1, 8)]
+        cbm_units = [Unit(name=f"CBM Unit {i}", property_id=cbm.id) for i in range(1, 7)]
+        db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
 
         admin_user = User(username='admin')
