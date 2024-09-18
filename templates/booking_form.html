@@ -7,8 +7,8 @@
     <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
-            {{ form.unit_ids.label }}
-            {{ form.unit_ids(class="form-control", multiple=True) }}
+            {{ form.unit_id.label }}
+            {{ form.unit_id(class="form-control") }}
         </div>
         <div class="form-group">
             {{ form.start_date.label }}
@@ -92,18 +92,4 @@
         </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-<script>
-    $(document).ready(function() {
-        $('#unit_ids').select2({
-            placeholder: 'Select units',
-            allowClear: true,
-            width: '100%'
-        });
-    });
-</script>
 {% endblock %}
