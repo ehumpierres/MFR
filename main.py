@@ -8,9 +8,22 @@ from functools import wraps
 from datetime import date
 import os
 from flask_mail import Mail, Message
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import QueuePool
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Update database configuration to use a connection pool with retry logic
+engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
+                       poolclass=QueuePool,
+                       pool_size=5,
+                       max_overflow=10,
+                       pool_timeout=30,
+                       pool_recycle=1800)
+db.session = scoped_session(sessionmaker(bind=engine))
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -49,13 +62,34 @@ def send_notification_email(subject, body, recipients):
 
 def notify_admins(booking):
     subject = f"New Booking Request: {booking.guest_name}"
-    body = f"A new booking request has been submitted:\nGuest: {booking.guest_name}\nUnit: {booking.unit.name}\nDates: {booking.start_date} to {booking.end_date}"
+    body = f"""A new booking request has been submitted:
+Guest: {booking.guest_name}
+Unit: {booking.unit.name}
+Dates: {booking.start_date} to {booking.end_date}
+Number of Guests: {booking.num_guests}
+Catering Option: {booking.catering_option}
+Special Requests: {booking.special_requests}
+Mobility Impaired: {'Yes' if booking.mobility_impaired else 'No'}
+Event Manager Contact: {booking.event_manager_contact}
+Offsite Emergency Contact: {booking.offsite_emergency_contact}
+Mitchell Sponsor: {booking.mitchell_sponsor}
+Exclusive Use: {booking.exclusive_use}
+Organization Status: {booking.organization_status}"""
     admin_emails = [email.email for email in NotificationEmail.query.all()]
     send_notification_email(subject, body, admin_emails)
 
 def notify_guest(booking):
     subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name} - {booking.unit.name}"
-    body = f"Your booking request for {booking.unit.property.name} - {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}."
+    body = f"""Your booking request for {booking.unit.property.name} - {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+Number of Guests: {booking.num_guests}
+Catering Option: {booking.catering_option}
+Special Requests: {booking.special_requests}
+Mobility Impaired: {'Yes' if booking.mobility_impaired else 'No'}
+Event Manager Contact: {booking.event_manager_contact}
+Offsite Emergency Contact: {booking.offsite_emergency_contact}
+Mitchell Sponsor: {booking.mitchell_sponsor}
+Exclusive Use: {booking.exclusive_use}
+Organization Status: {booking.organization_status}"""
     send_notification_email(subject, body, [booking.guest_email])
 
 @app.route('/')
@@ -104,6 +138,9 @@ def book():
     form = BookingForm()
     form.unit_id.choices = [(unit.id, f"{unit.property.name} - {unit.name}") for unit in Unit.query.join(Property).all()]
     if form.validate_on_submit():
+        if form.agree_to_terms.data == 'No':
+            flash('You must agree to the terms and conditions to submit a booking request.', 'error')
+            return render_template('booking_form.html', form=form)
         try:
             booking = Booking(
                 unit_id=form.unit_id.data,
@@ -111,6 +148,15 @@ def book():
                 end_date=form.end_date.data,
                 guest_name=form.guest_name.data,
                 guest_email=form.guest_email.data,
+                num_guests=form.num_guests.data,
+                catering_option=form.catering_option.data,
+                special_requests=form.special_requests.data,
+                mobility_impaired=form.mobility_impaired.data == 'Yes',
+                event_manager_contact=form.event_manager_contact.data,
+                offsite_emergency_contact=form.offsite_emergency_contact.data,
+                mitchell_sponsor=form.mitchell_sponsor.data,
+                exclusive_use=form.exclusive_use.data,
+                organization_status=form.organization_status.data,
                 status='pending'
             )
             db.session.add(booking)
@@ -118,10 +164,14 @@ def book():
             notify_admins(booking)
             flash('Booking request submitted successfully')
             return redirect(url_for('index'))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            app.logger.error(f"Database error while submitting booking: {str(e)}")
+            flash('An error occurred while submitting your booking. Please try again later.', 'error')
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Error submitting booking: {str(e)}")
-            flash('An error occurred while submitting your booking. Please try again.', 'error')
+            app.logger.error(f"Unexpected error while submitting booking: {str(e)}")
+            flash('An unexpected error occurred. Please try again later.', 'error')
     return render_template('booking_form.html', form=form)
 
 @app.route('/admin')
@@ -139,107 +189,166 @@ def admin():
 def add_notification_email():
     form = NotificationEmailForm()
     if form.validate_on_submit():
-        email = NotificationEmail(email=form.email.data)
-        db.session.add(email)
-        db.session.commit()
-        flash('Notification email added successfully')
+        try:
+            email = NotificationEmail(email=form.email.data)
+            db.session.add(email)
+            db.session.commit()
+            flash('Notification email added successfully')
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            app.logger.error(f"Database error while adding notification email: {str(e)}")
+            flash('An error occurred while adding the notification email. Please try again later.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Unexpected error while adding notification email: {str(e)}")
+            flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
 @app.route('/admin/remove_notification_email/<int:email_id>')
 @login_required
 @admin_required
 def remove_notification_email(email_id):
-    email = NotificationEmail.query.get_or_404(email_id)
-    db.session.delete(email)
-    db.session.commit()
-    flash('Notification email removed successfully')
+    try:
+        email = NotificationEmail.query.get_or_404(email_id)
+        db.session.delete(email)
+        db.session.commit()
+        flash('Notification email removed successfully')
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.error(f"Database error while removing notification email: {str(e)}")
+        flash('An error occurred while removing the notification email. Please try again later.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Unexpected error while removing notification email: {str(e)}")
+        flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
 @app.route('/approve/<int:booking_id>', methods=['POST'])
 @login_required
 @admin_required
 def approve_booking(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
-    booking.status = 'approved'
-    db.session.commit()
-    notify_guest(booking)
-    return jsonify({
-        'id': booking.id,
-        'title': f'{booking.guest_name} - {booking.unit.name}',
-        'color': '#378006',
-        'status': 'approved'
-    })
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        booking.status = 'approved'
+        db.session.commit()
+        notify_guest(booking)
+        return jsonify({
+            'id': booking.id,
+            'title': f'{booking.guest_name} - {booking.unit.name}',
+            'color': '#378006',
+            'status': 'approved'
+        })
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.error(f"Database error while approving booking: {str(e)}")
+        return jsonify({'error': 'An error occurred while approving the booking. Please try again later.'}), 500
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Unexpected error while approving booking: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 @app.route('/reject/<int:booking_id>')
 @login_required
 @admin_required
 def reject_booking(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
-    booking.status = 'rejected'
-    db.session.commit()
-    notify_guest(booking)
-    flash('Booking rejected')
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        booking.status = 'rejected'
+        db.session.commit()
+        notify_guest(booking)
+        flash('Booking rejected')
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.error(f"Database error while rejecting booking: {str(e)}")
+        flash('An error occurred while rejecting the booking. Please try again later.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Unexpected error while rejecting booking: {str(e)}")
+        flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
 @app.route('/api/bookings/<int:property_id>')
 @login_required
 def get_bookings(property_id):
-    bookings = Booking.query.join(Unit).filter(Unit.property_id == property_id).all()
-    events = [
-        {
-            'id': booking.id,
-            'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {booking.unit.name}',
-            'start': booking.start_date.isoformat(),
-            'end': booking.end_date.isoformat(),
-            'color': '#a8d08d' if booking.status == 'pending' else '#378006',
-            'status': booking.status
-        }
-        for booking in bookings
-    ]
-    return jsonify(events)
+    try:
+        bookings = Booking.query.join(Unit).filter(Unit.property_id == property_id).all()
+        events = [
+            {
+                'id': booking.id,
+                'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {booking.unit.name}',
+                'start': booking.start_date.isoformat(),
+                'end': booking.end_date.isoformat(),
+                'color': '#a8d08d' if booking.status == 'pending' else '#378006',
+                'status': booking.status
+            }
+            for booking in bookings
+        ]
+        return jsonify(events)
+    except SQLAlchemyError as e:
+        app.logger.error(f"Database error while fetching bookings: {str(e)}")
+        return jsonify({'error': 'An error occurred while fetching bookings. Please try again later.'}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error while fetching bookings: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 def create_sample_data():
-    # Create sample properties
-    beach_house = Property(name="Beach House", description="A beautiful house by the beach")
-    mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
-    db.session.add_all([beach_house, mountain_cabin])
-    db.session.commit()
+    try:
+        # Create sample properties
+        beach_house = Property(name="Beach House", description="A beautiful house by the beach")
+        mountain_cabin = Property(name="Mountain Cabin", description="A cozy cabin in the mountains")
+        db.session.add_all([beach_house, mountain_cabin])
+        db.session.commit()
 
-    # Create sample units for Beach House (7 units)
-    beach_house_units = [
-        Unit(name="Main House", property_id=beach_house.id),
-        Unit(name="Guest House", property_id=beach_house.id),
-        Unit(name="Beach Bungalow 1", property_id=beach_house.id),
-        Unit(name="Beach Bungalow 2", property_id=beach_house.id),
-        Unit(name="Beach Bungalow 3", property_id=beach_house.id),
-        Unit(name="Poolside Suite", property_id=beach_house.id),
-        Unit(name="Oceanview Loft", property_id=beach_house.id)
-    ]
+        # Create sample units for Beach House (7 units)
+        beach_house_units = [
+            Unit(name="Main House", property_id=beach_house.id),
+            Unit(name="Guest House", property_id=beach_house.id),
+            Unit(name="Beach Bungalow 1", property_id=beach_house.id),
+            Unit(name="Beach Bungalow 2", property_id=beach_house.id),
+            Unit(name="Beach Bungalow 3", property_id=beach_house.id),
+            Unit(name="Poolside Suite", property_id=beach_house.id),
+            Unit(name="Oceanview Loft", property_id=beach_house.id)
+        ]
 
-    # Create sample units for Mountain Cabin (6 units)
-    mountain_cabin_units = [
-        Unit(name="Main Cabin", property_id=mountain_cabin.id),
-        Unit(name="Treehouse Suite", property_id=mountain_cabin.id),
-        Unit(name="Hillside Cottage", property_id=mountain_cabin.id),
-        Unit(name="Lakeside Cabin", property_id=mountain_cabin.id),
-        Unit(name="Forest Retreat", property_id=mountain_cabin.id),
-        Unit(name="Mountain View Lodge", property_id=mountain_cabin.id)
-    ]
+        # Create sample units for Mountain Cabin (6 units)
+        mountain_cabin_units = [
+            Unit(name="Main Cabin", property_id=mountain_cabin.id),
+            Unit(name="Treehouse Suite", property_id=mountain_cabin.id),
+            Unit(name="Hillside Cottage", property_id=mountain_cabin.id),
+            Unit(name="Lakeside Cabin", property_id=mountain_cabin.id),
+            Unit(name="Forest Retreat", property_id=mountain_cabin.id),
+            Unit(name="Mountain View Lodge", property_id=mountain_cabin.id)
+        ]
 
-    db.session.add_all(beach_house_units + mountain_cabin_units)
-    db.session.commit()
+        db.session.add_all(beach_house_units + mountain_cabin_units)
+        db.session.commit()
 
-    # Create admin and regular user
-    admin_user = User(username='admin')
-    admin_user.set_password('admin_passphrase')
-    regular_user = User(username='user')
-    regular_user.set_password('user_passphrase')
-    db.session.add_all([admin_user, regular_user])
-    db.session.commit()
+        # Create admin and regular user
+        admin_user = User(username='admin')
+        admin_user.set_password('admin_passphrase')
+        regular_user = User(username='user')
+        regular_user.set_password('user_passphrase')
+        db.session.add_all([admin_user, regular_user])
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.error(f"Database error while creating sample data: {str(e)}")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Unexpected error while creating sample data: {str(e)}")
+
+def test_db_connection():
+    try:
+        db.session.execute(text('SELECT 1'))
+        app.logger.info("Database connection successful")
+    except SQLAlchemyError as e:
+        app.logger.error(f"Database connection failed: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     with app.app_context():
-        db.drop_all()  # Drop all existing tables
-        db.create_all()  # Create new tables
-        create_sample_data()  # Add sample data
+        test_db_connection()
+        db.drop_all()
+        db.create_all()
+        create_sample_data()
     app.run(host='0.0.0.0', port=5000)

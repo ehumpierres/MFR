@@ -26,6 +26,61 @@
             {{ form.guest_email.label }}
             {{ form.guest_email(class="form-control") }}
         </div>
+        <div class="form-group">
+            {{ form.num_guests.label }}
+            {{ form.num_guests(class="form-control", type="number", min="1") }}
+        </div>
+        <div class="form-group">
+            {{ form.catering_option.label }}
+            {{ form.catering_option(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.special_requests.label }}
+            {{ form.special_requests(class="form-control", rows="3") }}
+        </div>
+        <div class="form-group">
+            {{ form.mobility_impaired.label }}
+            {% for subfield in form.mobility_impaired %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.event_manager_contact.label }}
+            {{ form.event_manager_contact(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.offsite_emergency_contact.label }}
+            {{ form.offsite_emergency_contact(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.mitchell_sponsor.label }}
+            {{ form.mitchell_sponsor(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.exclusive_use.label }}
+            {% for subfield in form.exclusive_use %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.organization_status.label }}
+            {% for subfield in form.organization_status %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.agree_to_terms.label }}
+            {{ form.agree_to_terms(class="form-control") }}
+        </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
 {% endblock %}

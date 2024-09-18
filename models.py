@@ -37,7 +37,16 @@ class Booking(db.Model):
     end_date = db.Column(db.Date, nullable=False)
     guest_name = db.Column(db.String(100), nullable=False)
     guest_email = db.Column(db.String(100), nullable=False)
+    num_guests = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), nullable=False)
+    catering_option = db.Column(db.String(20), nullable=False)
+    special_requests = db.Column(db.Text)
+    mobility_impaired = db.Column(db.Boolean, nullable=False)
+    event_manager_contact = db.Column(db.String(200), nullable=False)
+    offsite_emergency_contact = db.Column(db.String(200), nullable=False)
+    mitchell_sponsor = db.Column(db.String(100), nullable=False)
+    exclusive_use = db.Column(db.String(20), nullable=False)
+    organization_status = db.Column(db.String(50), nullable=False)
 
 class NotificationEmail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
