@@ -349,7 +349,13 @@ def create_sample_data():
         db.session.add_all([cbc, cbm])
         db.session.commit()
 
-        cbc_units = [Unit(name=f"CBC Unit {i}", property_id=cbc.id) for i in range(1, 8)]
+        cbc_units = [
+            Unit(name="Log Cabin", property_id=cbc.id),
+            Unit(name="Pavilion", property_id=cbc.id),
+            Unit(name="Deerfield", property_id=cbc.id),
+            Unit(name="Kurth Annex", property_id=cbc.id),
+            Unit(name="Kurth House", property_id=cbc.id)
+        ]
         cbm_units = [Unit(name=f"CBM Unit {i}", property_id=cbm.id) for i in range(1, 7)]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
