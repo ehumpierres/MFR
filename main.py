@@ -63,6 +63,8 @@ def notify_admins(booking):
 Guest: {booking.guest_name}
 Unit: {booking.unit.name}
 Dates: {booking.start_date} to {booking.end_date}
+Arrival Time: {booking.arrival_time}
+Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
 Catering Option: {booking.catering_option}
 Special Requests: {booking.special_requests}
@@ -78,6 +80,8 @@ Organization Status: {booking.organization_status}"""
 def notify_guest(booking):
     subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name} - {booking.unit.name}"
     body = f"""Your booking request for {booking.unit.property.name} - {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+Arrival Time: {booking.arrival_time}
+Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
 Catering Option: {booking.catering_option}
 Special Requests: {booking.special_requests}
@@ -140,6 +144,8 @@ def book():
                 unit_id=form.unit_id.data,
                 start_date=form.start_date.data,
                 end_date=form.end_date.data,
+                arrival_time=form.arrival_time.data,
+                departure_time=form.departure_time.data,
                 guest_name=form.guest_name.data,
                 guest_email=form.guest_email.data,
                 num_guests=form.num_guests.data,
@@ -270,8 +276,8 @@ def get_bookings(property_id):
             {
                 'id': booking.id,
                 'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {booking.unit.name}',
-                'start': booking.start_date.isoformat(),
-                'end': booking.end_date.isoformat(),
+                'start': f"{booking.start_date.isoformat()}T{booking.arrival_time.isoformat()}",
+                'end': f"{booking.end_date.isoformat()}T{booking.departure_time.isoformat()}",
                 'color': '#a8d08d' if booking.status == 'pending' else '#378006',
                 'status': booking.status
             }

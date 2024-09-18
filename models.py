@@ -35,6 +35,8 @@ class Booking(db.Model):
     unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
+    arrival_time = db.Column(db.Time, nullable=False)
+    departure_time = db.Column(db.Time, nullable=False)
     guest_name = db.Column(db.String(100), nullable=False)
     guest_email = db.Column(db.String(100), nullable=False)
     num_guests = db.Column(db.Integer, nullable=False)

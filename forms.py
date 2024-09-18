@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, DateField, SelectField, IntegerField, TextAreaField, RadioField
+from wtforms import StringField, PasswordField, SubmitField, DateField, SelectField, IntegerField, TextAreaField, RadioField, TimeField
 from wtforms.validators import DataRequired, Email, NumberRange
 
 class LoginForm(FlaskForm):
@@ -10,13 +10,15 @@ class BookingForm(FlaskForm):
     unit_id = SelectField('Unit', coerce=int, validators=[DataRequired()])
     start_date = DateField('Start Date', validators=[DataRequired()])
     end_date = DateField('End Date', validators=[DataRequired()])
+    arrival_time = TimeField('Time of Arrival', validators=[DataRequired()])
+    departure_time = TimeField('Time of Departure', validators=[DataRequired()])
     guest_name = StringField('Guest Name', validators=[DataRequired()])
     guest_email = StringField('Guest Email', validators=[DataRequired(), Email()])
     num_guests = IntegerField('Number of Guests', validators=[DataRequired(), NumberRange(min=1, message="Must be at least 1")])
     catering_option = RadioField('Will you be directly booking your own caterer or bringing your own food?', 
                                  choices=[('Catering', 'Catering'), ('Bring own food', 'Bring own food')],
                                  validators=[DataRequired()])
-    special_requests = TextAreaField('Special Requests (e.g., dietary restrictions, accessibility needs, or any other accommodations)')
+    special_requests = TextAreaField('Special equipment requests (e.g., whiteboards, markers, additional tables)')
     mobility_impaired = RadioField('Is anyone in your party mobility impaired?', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
     event_manager_contact = StringField('Event manager/on-site emergency contact. Name, phone number, and email address:', validators=[DataRequired()])
     offsite_emergency_contact = StringField('Off-site emergency contact. Name, phone number, and email address:', validators=[DataRequired()])
