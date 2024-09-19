@@ -82,6 +82,8 @@ def send_notification_email(subject, body, recipients, ical_attachment=None):
         return True
     except Exception as e:
         logger.error(f"Failed to send email: {str(e)}")
+        logger.error(f"Email details - Subject: {subject}, Recipients: {recipients}")
+        logger.error(f"SMTP Server: {app.config['MAIL_SERVER']}, Port: {app.config['MAIL_PORT']}")
         return False
 
 def notify_admins(booking):
@@ -102,8 +104,20 @@ Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
     admin_emails = [email.email for email in NotificationEmail.query.all()]
+    logger.debug(f"Number of admin emails fetched: {len(admin_emails)}")
+    
+    if not admin_emails:
+        logger.warning("No admin emails found. Skipping admin notification.")
+        return False
+
     ical_attachment = generate_ical(booking)
-    return send_notification_email(subject, body, admin_emails, ical_attachment)
+    if not ical_attachment:
+        logger.error("Failed to generate iCal attachment")
+        return False
+
+    result = send_notification_email(subject, body, admin_emails, ical_attachment)
+    logger.debug(f"Result of sending admin notification: {result}")
+    return result
 
 def notify_guest(booking):
     subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
@@ -263,8 +277,18 @@ def approve_booking(booking_id):
         booking = Booking.query.get_or_404(booking_id)
         booking.status = 'approved'
         db.session.commit()
-        notify_guest(booking)
-        notify_admins(booking)  # Notify admins about the approval
+        
+        logger.debug(f"Attempting to notify guest for booking {booking_id}")
+        guest_notified = notify_guest(booking)
+        logger.debug(f"Guest notification result: {guest_notified}")
+        
+        logger.debug(f"Attempting to notify admins for booking {booking_id}")
+        admins_notified = notify_admins(booking)
+        logger.debug(f"Admin notification result: {admins_notified}")
+        
+        if not guest_notified or not admins_notified:
+            logger.warning(f"Failed to send some notifications for booking {booking_id}")
+        
         return jsonify({
             'id': booking.id,
             'title': f'{booking.guest_name} - {booking.unit.name}',
@@ -441,8 +465,7 @@ def create_sample_data():
             Unit(name="Firemeadow - Magnolia", property_id=cbm.id),
             Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
             Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
-            Unit(name="Sunday House", property_id=cbm.id),
-            Unit(name="Barn/Office", property_id=cbm.id)
+            Unit(name="Sunday House", property_id=cbm.id)
         ]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
