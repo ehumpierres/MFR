@@ -30,9 +30,9 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_SERVER'] = 'smtp-mail.outlook.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 mail = Mail(app)
@@ -338,6 +338,21 @@ def admin_database():
     units = Unit.query.all()
     return render_template('admin_database.html', properties=properties, units=units)
 
+@app.route('/test_email')
+@login_required
+@admin_required
+def test_email():
+    try:
+        send_notification_email(
+            subject="Test Email",
+            body="This is a test email from the Mitchell Property Booking system.",
+            recipients=[app.config['MAIL_USERNAME']]
+        )
+        return "Test email sent successfully. Please check your inbox."
+    except Exception as e:
+        app.logger.error(f"Failed to send test email: {str(e)}")
+        return f"Failed to send test email: {str(e)}", 500
+
 def create_sample_data():
     app.logger.info("Attempting to create sample data")
     try:
@@ -346,8 +361,8 @@ def create_sample_data():
         Property.query.delete()
         db.session.commit()
 
-        cbc = Property(name="CBC", description="Coastal Beach Club")
-        cbm = Property(name="CBM", description="Coastal Beach Meadow")
+        cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
+        cbm = Property(name="CBM", description="Firemeadow, Sunday House, Barn/Office")
         db.session.add_all([cbc, cbm])
         db.session.commit()
 
@@ -360,6 +375,7 @@ def create_sample_data():
         ]
         cbm_units = [
             Unit(name="Firemeadow - Main Lodge", property_id=cbm.id),
+            Unit(name="Firemeadow - Cabin 0", property_id=cbm.id),
             Unit(name="Firemeadow - Cabin 1", property_id=cbm.id),
             Unit(name="Firemeadow - Cabin 2", property_id=cbm.id),
             Unit(name="Firemeadow - Cabin 3", property_id=cbm.id),
