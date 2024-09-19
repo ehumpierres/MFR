@@ -20,7 +20,6 @@ import logging
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
 
@@ -103,7 +102,8 @@ Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
     admin_emails = [email.email for email in NotificationEmail.query.all()]
-    return send_notification_email(subject, body, admin_emails)
+    ical_attachment = generate_ical(booking)
+    return send_notification_email(subject, body, admin_emails, ical_attachment)
 
 def notify_guest(booking):
     subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
@@ -264,6 +264,7 @@ def approve_booking(booking_id):
         booking.status = 'approved'
         db.session.commit()
         notify_guest(booking)
+        notify_admins(booking)  # Notify admins about the approval
         return jsonify({
             'id': booking.id,
             'title': f'{booking.guest_name} - {booking.unit.name}',
@@ -371,7 +372,6 @@ def admin_database():
 @admin_required
 def test_email():
     try:
-        # Create a test booking
         test_unit = Unit.query.first()
         if not test_unit:
             return "No units available for testing", 400
@@ -398,7 +398,6 @@ def test_email():
         db.session.add(test_booking)
         db.session.commit()
 
-        # Send notification email with calendar invite
         if notify_guest(test_booking):
             return "Test email with calendar invite sent successfully. Please check your inbox."
         else:
