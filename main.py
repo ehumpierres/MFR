@@ -88,8 +88,9 @@ def send_notification_email(subject, body, recipients, ical_attachment=None):
         return False
 
 def notify_admins(booking):
-    subject = f"New Booking Request: {booking.guest_name}"
-    body = f"""A new booking request has been submitted:
+    try:
+        subject = f"New Booking Request: {booking.guest_name}"
+        body = f"""A new booking request has been submitted:
 Guest: {booking.guest_name}
 Unit: {booking.unit.name}
 Dates: {booking.start_date} to {booking.end_date}
@@ -104,25 +105,29 @@ Offsite Emergency Contact: {booking.offsite_emergency_contact}
 Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
-    admin_emails = [email.email for email in NotificationEmail.query.all()]
-    logger.debug(f"Number of admin emails fetched: {len(admin_emails)}")
-    
-    if not admin_emails:
-        logger.warning("No admin emails found. Skipping admin notification.")
-        return False
+        admin_emails = [email.email for email in NotificationEmail.query.all()]
+        logger.debug(f"Number of admin emails fetched: {len(admin_emails)}")
+        
+        if not admin_emails:
+            logger.warning("No admin emails found. Skipping admin notification.")
+            return False
 
-    ical_attachment = generate_ical(booking)
-    if not ical_attachment:
-        logger.error("Failed to generate iCal attachment")
-        return False
+        ical_attachment = generate_ical(booking)
+        if not ical_attachment:
+            logger.error("Failed to generate iCal attachment")
+            return False
 
-    result = send_notification_email(subject, body, admin_emails, ical_attachment)
-    logger.debug(f"Result of sending admin notification: {result}")
-    return result
+        result = send_notification_email(subject, body, admin_emails, ical_attachment)
+        logger.debug(f"Result of sending admin notification: {result}")
+        return result
+    except Exception as e:
+        logger.error(f'Error notifying admins for booking {booking.id}: {str(e)}')
+        return False
 
 def notify_guest(booking):
-    subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
-    body = f"""Your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+    try:
+        subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
+        body = f"""Your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
@@ -134,17 +139,20 @@ Offsite Emergency Contact: {booking.offsite_emergency_contact}
 Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
-    
-    ical_attachment = generate_ical(booking) if booking.status == 'approved' else None
+        
+        ical_attachment = generate_ical(booking) if booking.status == 'approved' else None
 
-    recipients = [booking.guest_email]
+        recipients = [booking.guest_email]
 
-    if booking.status == 'approved':
-        admin_emails = [email.email for email in NotificationEmail.query.all()]
-        if admin_emails:
-            recipients.extend(admin_emails)
+        if booking.status == 'approved':
+            admin_emails = [email.email for email in NotificationEmail.query.all()]
+            if admin_emails:
+                recipients.extend(admin_emails)
 
-    return send_notification_email(subject, body, recipients, ical_attachment)
+        return send_notification_email(subject, body, recipients, ical_attachment)
+    except Exception as e:
+        logger.error(f'Error notifying guest for booking {booking.id}: {str(e)}')
+        return False
 
 @app.route('/')
 @login_required
@@ -297,6 +305,9 @@ def approve_booking(booking_id):
         
         if not guest_notified or not admins_notified:
             logger.warning(f"Failed to send some notifications for booking {booking_id}")
+            flash('Booking approved, but there was an issue sending notifications.', 'warning')
+        else:
+            flash('Booking approved and notifications sent successfully.', 'success')
         
         return jsonify({
             'id': booking.id,
@@ -321,8 +332,11 @@ def reject_booking(booking_id):
         booking = Booking.query.get_or_404(booking_id)
         booking.status = 'rejected'
         db.session.commit()
-        notify_guest(booking)
-        flash('Booking rejected')
+        
+        if notify_guest(booking):
+            flash('Booking rejected and guest notified.', 'success')
+        else:
+            flash('Booking rejected, but there was an issue notifying the guest.', 'warning')
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"Database error while rejecting booking: {str(e)}")
@@ -452,11 +466,13 @@ def create_sample_data():
             Booking.query.delete()
             Unit.query.delete()
             Property.query.delete()
+            User.query.delete()
+            NotificationEmail.query.delete()
             db.session.commit()
             logger.info("Existing data cleared")
 
             cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
-            cbm = Property(name="CBM", description="Firemeadow, Sunday House, Barn/Office")
+            cbm = Property(name="CBM", description="Firemeadow, Sunday House")
             db.session.add_all([cbc, cbm])
             db.session.commit()
             logger.info(f"Created properties: CBC (id: {cbc.id}), CBM (id: {cbm.id})")
