@@ -1,24 +1,29 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from werkzeug.security import check_password_hash, generate_password_hash
-from models import db, User, Property, Unit, Booking, NotificationEmail
-from forms import LoginForm, BookingForm, NotificationEmailForm
-from config import Config
-from functools import wraps
-from datetime import date, datetime, timedelta
-from flask_mail import Mail, Message
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, date, timedelta
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import create_engine, text
+from sqlalchemy import text, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
+import logging
+from flask_mail import Mail, Message
+from config import Config
+from functools import wraps
 from flask_migrate import Migrate
 from icalendar import Calendar, Event
 from io import BytesIO
-import logging
+from forms import LoginForm, BookingForm, NotificationEmailForm
+from models import db, User, Property, Unit, Booking, NotificationEmail
 
 app = Flask(__name__)
 app.config.from_object(Config)
+db.init_app(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
@@ -31,17 +36,7 @@ engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        pool_recycle=1800)
 db.session = scoped_session(sessionmaker(bind=engine))
 
-db.init_app(app)
 migrate = Migrate(app, db)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-
-app.config['MAIL_SERVER'] = 'smtp-mail.outlook.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-mail = Mail(app)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -74,17 +69,17 @@ def generate_ical(booking):
 
 def send_notification_email(subject, body, recipients, ical_attachment=None):
     try:
-        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=recipients)
+        msg = Message(subject, recipients=recipients)
         msg.body = body
+        
         if ical_attachment:
-            msg.attach("booking.ics", "text/calendar", ical_attachment)
+            msg.attach("event.ics", "text/calendar", ical_attachment)
+        
         mail.send(msg)
         logger.info(f"Email sent successfully to {recipients}")
         return True
     except Exception as e:
         logger.error(f"Failed to send email: {str(e)}")
-        logger.error(f"Email details - Subject: {subject}, Recipients: {recipients}")
-        logger.error(f"SMTP Server: {app.config['MAIL_SERVER']}, Port: {app.config['MAIL_PORT']}")
         return False
 
 def notify_admins(booking):
