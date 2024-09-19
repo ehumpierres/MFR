@@ -6,13 +6,15 @@ from models import db, User, Property, Unit, Booking, NotificationEmail
 from forms import LoginForm, BookingForm, NotificationEmailForm
 from config import Config
 from functools import wraps
-from datetime import date
+from datetime import date, datetime, timedelta
 from flask_mail import Mail, Message
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 from flask_migrate import Migrate
+from icalendar import Calendar, Event
+from io import BytesIO
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -50,20 +52,38 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def send_notification_email(subject, body, recipients):
+def generate_ical(booking):
+    cal = Calendar()
+    cal.add('prodid', '-//Mitchell Property Booking System//mxm.dk//')
+    cal.add('version', '2.0')
+
+    event = Event()
+    event.add('summary', f"Booking: {booking.unit.property.name} - {booking.unit.name}")
+    event.add('dtstart', datetime.combine(booking.start_date, booking.arrival_time))
+    event.add('dtend', datetime.combine(booking.end_date, booking.departure_time))
+    event.add('description', f"Guest: {booking.guest_name}\nNumber of Guests: {booking.num_guests}")
+    event.add('location', f"{booking.unit.property.name} - {booking.unit.name}")
+
+    cal.add_component(event)
+    return cal.to_ical()
+
+def send_notification_email(subject, body, recipients, ical_attachment=None):
     try:
         msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=recipients)
         msg.body = body
+        if ical_attachment:
+            msg.attach("booking.ics", "text/calendar", ical_attachment)
         mail.send(msg)
+        return True
     except Exception as e:
         app.logger.error(f"Failed to send email: {str(e)}")
-        pass
+        return False
 
 def notify_admins(booking):
     subject = f"New Booking Request: {booking.guest_name}"
     body = f"""A new booking request has been submitted:
 Guest: {booking.guest_name}
-Unit: {Unit.query.get(booking.unit_id).name}
+Unit: {booking.unit.name}
 Dates: {booking.start_date} to {booking.end_date}
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
@@ -77,11 +97,11 @@ Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
     admin_emails = [email.email for email in NotificationEmail.query.all()]
-    send_notification_email(subject, body, admin_emails)
+    return send_notification_email(subject, body, admin_emails)
 
 def notify_guest(booking):
-    subject = f"Booking {booking.status.capitalize()}: {Unit.query.get(booking.unit_id).property.name}"
-    body = f"""Your booking request for {Unit.query.get(booking.unit_id).name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+    subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
+    body = f"""Your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
@@ -93,7 +113,9 @@ Offsite Emergency Contact: {booking.offsite_emergency_contact}
 Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
-    send_notification_email(subject, body, [booking.guest_email])
+    
+    ical_attachment = generate_ical(booking) if booking.status == 'approved' else None
+    return send_notification_email(subject, body, [booking.guest_email], ical_attachment)
 
 @app.route('/')
 @login_required
@@ -238,7 +260,7 @@ def approve_booking(booking_id):
         notify_guest(booking)
         return jsonify({
             'id': booking.id,
-            'title': f'{booking.guest_name} - {Unit.query.get(booking.unit_id).name}',
+            'title': f'{booking.guest_name} - {booking.unit.name}',
             'color': '#378006',
             'status': 'approved'
         })
@@ -279,7 +301,7 @@ def get_bookings(property_id):
         events = [
             {
                 'id': booking.id,
-                'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {Unit.query.get(booking.unit_id).name}',
+                'title': f'{"PENDING - " if booking.status == "pending" else ""}{booking.guest_name} - {booking.unit.name}',
                 'start': f"{booking.start_date.isoformat()}T{booking.arrival_time.isoformat()}",
                 'end': f"{booking.end_date.isoformat()}T{booking.departure_time.isoformat()}",
                 'color': '#a8d08d' if booking.status == 'pending' else '#378006',
@@ -343,12 +365,39 @@ def admin_database():
 @admin_required
 def test_email():
     try:
-        send_notification_email(
-            subject="Test Email",
-            body="This is a test email from the Mitchell Property Booking system.",
-            recipients=[app.config['MAIL_USERNAME']]
+        # Create a test booking
+        test_unit = Unit.query.first()
+        if not test_unit:
+            return "No units available for testing", 400
+
+        test_booking = Booking(
+            unit_id=test_unit.id,
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=10),
+            arrival_time=datetime.now().time(),
+            departure_time=(datetime.now() + timedelta(hours=3)).time(),
+            guest_name="Test Guest",
+            guest_email=app.config['MAIL_USERNAME'],
+            num_guests=2,
+            catering_option="Bring own food",
+            special_requests="Test request",
+            mobility_impaired=False,
+            event_manager_contact="Test Manager",
+            offsite_emergency_contact="Test Emergency",
+            mitchell_sponsor="Test Sponsor",
+            exclusive_use="Open to sharing",
+            organization_status="Personal use",
+            status='approved'
         )
-        return "Test email sent successfully. Please check your inbox."
+        db.session.add(test_booking)
+        db.session.commit()
+
+        # Send notification email with calendar invite
+        if notify_guest(test_booking):
+            return "Test email with calendar invite sent successfully. Please check your inbox."
+        else:
+            return "Failed to send test email", 500
+
     except Exception as e:
         app.logger.error(f"Failed to send test email: {str(e)}")
         return f"Failed to send test email: {str(e)}", 500
