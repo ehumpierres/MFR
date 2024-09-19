@@ -16,6 +16,18 @@
                 <th>Guest Name</th>
                 <th>Start Date</th>
                 <th>End Date</th>
+                <th>Arrival Time</th>
+                <th>Departure Time</th>
+                <th>Guest Email</th>
+                <th>Number of Guests</th>
+                <th>Catering Option</th>
+                <th>Special Requests</th>
+                <th>Mobility Impaired</th>
+                <th>Event Manager Contact</th>
+                <th>Offsite Emergency Contact</th>
+                <th>Mitchell Sponsor</th>
+                <th>Exclusive Use</th>
+                <th>Organization Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -27,6 +39,18 @@
                     <td>{{ booking.guest_name }}</td>
                     <td>{{ booking.start_date }}</td>
                     <td>{{ booking.end_date }}</td>
+                    <td>{{ booking.arrival_time }}</td>
+                    <td>{{ booking.departure_time }}</td>
+                    <td>{{ booking.guest_email }}</td>
+                    <td>{{ booking.num_guests }}</td>
+                    <td>{{ booking.catering_option }}</td>
+                    <td>{{ booking.special_requests }}</td>
+                    <td>{{ 'Yes' if booking.mobility_impaired else 'No' }}</td>
+                    <td>{{ booking.event_manager_contact }}</td>
+                    <td>{{ booking.offsite_emergency_contact }}</td>
+                    <td>{{ booking.mitchell_sponsor }}</td>
+                    <td>{{ booking.exclusive_use }}</td>
+                    <td>{{ booking.organization_status }}</td>
                     <td>
                         <a href="#" onclick="approveBooking({{ booking.id }}); return false;" class="btn btn-success btn-sm">Approve</a>
                         <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>

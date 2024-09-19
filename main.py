@@ -182,7 +182,7 @@ def book():
 @login_required
 @admin_required
 def admin():
-    pending_bookings = Booking.query.filter_by(status='pending').all()
+    pending_bookings = Booking.query.filter_by(status='pending').join(Unit).join(Property).all()
     email_form = NotificationEmailForm()
     notification_emails = NotificationEmail.query.all()
     return render_template('admin.html', bookings=pending_bookings, email_form=email_form, notification_emails=notification_emails)
