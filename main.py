@@ -66,6 +66,7 @@ def generate_ical(booking):
     event.add('dtstart', datetime.combine(booking.start_date, booking.arrival_time))
     event.add('dtend', datetime.combine(booking.end_date, booking.departure_time))
     event.add('description', f"Guest: {booking.guest_name}\nNumber of Guests: {booking.num_guests}")
+    event.add('organizer', booking.guest_name)
     event.add('location', f"{booking.unit.property.name} - {booking.unit.name}")
 
     cal.add_component(event)
@@ -135,7 +136,15 @@ Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
     
     ical_attachment = generate_ical(booking) if booking.status == 'approved' else None
-    return send_notification_email(subject, body, [booking.guest_email], ical_attachment)
+
+    recipients = [booking.guest_email]
+
+    if booking.status == 'approved':
+        admin_emails = [email.email for email in NotificationEmail.query.all()]
+        if admin_emails:
+            recipients.extend(admin_emails)
+
+    return send_notification_email(subject, body, recipients, ical_attachment)
 
 @app.route('/')
 @login_required
@@ -432,52 +441,64 @@ def test_email():
         return f"Failed to send test email: {str(e)}", 500
 
 def create_sample_data():
-    logger.info("Attempting to create sample data")
+    logger.info("Checking if sample data needs to be created")
     try:
-        Booking.query.delete()
-        Unit.query.delete()
-        Property.query.delete()
-        db.session.commit()
+        property_count = Property.query.count()
+        logger.info(f"Number of existing properties: {property_count}")
+        
+        if property_count == 0:
+            logger.info("Database is empty. Creating sample data...")
+            
+            Booking.query.delete()
+            Unit.query.delete()
+            Property.query.delete()
+            db.session.commit()
+            logger.info("Existing data cleared")
 
-        cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
-        cbm = Property(name="CBM", description="Firemeadow, Sunday House, Barn/Office")
-        db.session.add_all([cbc, cbm])
-        db.session.commit()
+            cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
+            cbm = Property(name="CBM", description="Firemeadow, Sunday House, Barn/Office")
+            db.session.add_all([cbc, cbm])
+            db.session.commit()
+            logger.info(f"Created properties: CBC (id: {cbc.id}), CBM (id: {cbm.id})")
 
-        cbc_units = [
-            Unit(name="Log Cabin", property_id=cbc.id),
-            Unit(name="Pavilion", property_id=cbc.id),
-            Unit(name="Deerfield", property_id=cbc.id),
-            Unit(name="Kurth Annex", property_id=cbc.id),
-            Unit(name="Kurth House", property_id=cbc.id)
-        ]
-        cbm_units = [
-            Unit(name="Firemeadow - Main Lodge", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 0", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 1", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 2", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 3", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 4", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 5", property_id=cbm.id),
-            Unit(name="Firemeadow - Cabin 6", property_id=cbm.id),
-            Unit(name="Firemeadow - Meadowlark", property_id=cbm.id),
-            Unit(name="Firemeadow - Mariposa", property_id=cbm.id),
-            Unit(name="Firemeadow - Magnolia", property_id=cbm.id),
-            Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
-            Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
-            Unit(name="Sunday House", property_id=cbm.id)
-        ]
-        db.session.add_all(cbc_units + cbm_units)
-        db.session.commit()
+            cbc_units = [
+                Unit(name="Log Cabin", property_id=cbc.id),
+                Unit(name="Pavilion", property_id=cbc.id),
+                Unit(name="Deerfield", property_id=cbc.id),
+                Unit(name="Kurth Annex", property_id=cbc.id),
+                Unit(name="Kurth House", property_id=cbc.id)
+            ]
+            cbm_units = [
+                Unit(name="Firemeadow - Main Lodge", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 0", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 1", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 2", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 3", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 4", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 5", property_id=cbm.id),
+                Unit(name="Firemeadow - Cabin 6", property_id=cbm.id),
+                Unit(name="Firemeadow - Meadowlark", property_id=cbm.id),
+                Unit(name="Firemeadow - Mariposa", property_id=cbm.id),
+                Unit(name="Firemeadow - Magnolia", property_id=cbm.id),
+                Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
+                Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
+                Unit(name="Sunday House", property_id=cbm.id)
+            ]
+            db.session.add_all(cbc_units + cbm_units)
+            db.session.commit()
+            logger.info(f"Created {len(cbc_units)} units for CBC and {len(cbm_units)} units for CBM")
 
-        admin_user = User(username='admin')
-        admin_user.set_password('admin_passphrase')
-        regular_user = User(username='user')
-        regular_user.set_password('user_passphrase')
-        db.session.add_all([admin_user, regular_user])
-        db.session.commit()
+            admin_user = User(username='admin')
+            admin_user.set_password('admin_passphrase')
+            regular_user = User(username='user')
+            regular_user.set_password('user_passphrase')
+            db.session.add_all([admin_user, regular_user])
+            db.session.commit()
+            logger.info("Created admin and regular user accounts")
 
-        logger.info("Sample data created successfully")
+            logger.info("Sample data created successfully")
+        else:
+            logger.info("Database is not empty. Skipping sample data creation.")
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"Database error while creating sample data: {str(e)}")
