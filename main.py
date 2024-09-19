@@ -15,9 +15,14 @@ from sqlalchemy.pool import QueuePool
 from flask_migrate import Migrate
 from icalendar import Calendar, Event
 from io import BytesIO
+import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = app.logger
 
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        poolclass=QueuePool,
@@ -58,7 +63,7 @@ def generate_ical(booking):
     cal.add('version', '2.0')
 
     event = Event()
-    event.add('summary', f"Booking: {booking.unit.property.name} - {booking.unit.name}")
+    event.add('summary', f"Booking: {booking.guest_name} - {booking.unit.property.name} - {booking.unit.name}")
     event.add('dtstart', datetime.combine(booking.start_date, booking.arrival_time))
     event.add('dtend', datetime.combine(booking.end_date, booking.departure_time))
     event.add('description', f"Guest: {booking.guest_name}\nNumber of Guests: {booking.num_guests}")
@@ -74,9 +79,10 @@ def send_notification_email(subject, body, recipients, ical_attachment=None):
         if ical_attachment:
             msg.attach("booking.ics", "text/calendar", ical_attachment)
         mail.send(msg)
+        logger.info(f"Email sent successfully to {recipients}")
         return True
     except Exception as e:
-        app.logger.error(f"Failed to send email: {str(e)}")
+        logger.error(f"Failed to send email: {str(e)}")
         return False
 
 def notify_admins(booking):
@@ -120,9 +126,9 @@ Organization Status: {booking.organization_status}"""
 @app.route('/')
 @login_required
 def index():
-    app.logger.info("Fetching properties for index page")
+    logger.info("Fetching properties for index page")
     properties = Property.query.all()
-    app.logger.info(f"Number of properties fetched: {len(properties)}")
+    logger.info(f"Number of properties fetched: {len(properties)}")
     return render_template('properties.html', properties=properties)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -192,11 +198,11 @@ def book():
             return redirect(url_for('index'))
         except SQLAlchemyError as e:
             db.session.rollback()
-            app.logger.error(f"Database error while submitting booking: {str(e)}")
+            logger.error(f"Database error while submitting booking: {str(e)}")
             flash('An error occurred while submitting your booking. Please try again later.', 'error')
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Unexpected error while submitting booking: {str(e)}")
+            logger.error(f"Unexpected error while submitting booking: {str(e)}")
             flash('An unexpected error occurred. Please try again later.', 'error')
     return render_template('booking_form.html', form=form)
 
@@ -222,11 +228,11 @@ def add_notification_email():
             flash('Notification email added successfully')
         except SQLAlchemyError as e:
             db.session.rollback()
-            app.logger.error(f"Database error while adding notification email: {str(e)}")
+            logger.error(f"Database error while adding notification email: {str(e)}")
             flash('An error occurred while adding the notification email. Please try again later.', 'error')
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Unexpected error while adding notification email: {str(e)}")
+            logger.error(f"Unexpected error while adding notification email: {str(e)}")
             flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
@@ -241,11 +247,11 @@ def remove_notification_email(email_id):
         flash('Notification email removed successfully')
     except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.error(f"Database error while removing notification email: {str(e)}")
+        logger.error(f"Database error while removing notification email: {str(e)}")
         flash('An error occurred while removing the notification email. Please try again later.', 'error')
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Unexpected error while removing notification email: {str(e)}")
+        logger.error(f"Unexpected error while removing notification email: {str(e)}")
         flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
@@ -266,11 +272,11 @@ def approve_booking(booking_id):
         })
     except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.error(f"Database error while approving booking: {str(e)}")
+        logger.error(f"Database error while approving booking: {str(e)}")
         return jsonify({'error': 'An error occurred while approving the booking. Please try again later.'}), 500
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Unexpected error while approving booking: {str(e)}")
+        logger.error(f"Unexpected error while approving booking: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 @app.route('/reject/<int:booking_id>')
@@ -285,11 +291,11 @@ def reject_booking(booking_id):
         flash('Booking rejected')
     except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.error(f"Database error while rejecting booking: {str(e)}")
+        logger.error(f"Database error while rejecting booking: {str(e)}")
         flash('An error occurred while rejecting the booking. Please try again later.', 'error')
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Unexpected error while rejecting booking: {str(e)}")
+        logger.error(f"Unexpected error while rejecting booking: {str(e)}")
         flash('An unexpected error occurred. Please try again later.', 'error')
     return redirect(url_for('admin'))
 
@@ -311,10 +317,10 @@ def get_bookings(property_id):
         ]
         return jsonify(events)
     except SQLAlchemyError as e:
-        app.logger.error(f"Database error while fetching bookings: {str(e)}")
+        logger.error(f"Database error while fetching bookings: {str(e)}")
         return jsonify({'error': 'An error occurred while fetching bookings. Please try again later.'}), 500
     except Exception as e:
-        app.logger.error(f"Unexpected error while fetching bookings: {str(e)}")
+        logger.error(f"Unexpected error while fetching bookings: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 @app.route('/admin/database', methods=['GET', 'POST'])
@@ -399,11 +405,11 @@ def test_email():
             return "Failed to send test email", 500
 
     except Exception as e:
-        app.logger.error(f"Failed to send test email: {str(e)}")
+        logger.error(f"Failed to send test email: {str(e)}")
         return f"Failed to send test email: {str(e)}", 500
 
 def create_sample_data():
-    app.logger.info("Attempting to create sample data")
+    logger.info("Attempting to create sample data")
     try:
         Booking.query.delete()
         Unit.query.delete()
@@ -449,26 +455,30 @@ def create_sample_data():
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
 
-        app.logger.info("Sample data created successfully")
+        logger.info("Sample data created successfully")
     except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.error(f"Database error while creating sample data: {str(e)}")
+        logger.error(f"Database error while creating sample data: {str(e)}")
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Unexpected error while creating sample data: {str(e)}")
+        logger.error(f"Unexpected error while creating sample data: {str(e)}")
 
 def test_db_connection():
     try:
         db.session.execute(text('SELECT 1'))
-        app.logger.info("Database connection successful")
+        logger.info("Database connection successful")
     except SQLAlchemyError as e:
-        app.logger.error(f"Database connection failed: {str(e)}")
+        logger.error(f"Database connection failed: {str(e)}")
         raise
 
 if __name__ == '__main__':
     with app.app_context():
-        test_db_connection()
-        db.create_all()
-        create_sample_data()
+        try:
+            test_db_connection()
+            db.create_all()
+            create_sample_data()
+            logger.info("Application setup completed successfully")
+        except Exception as e:
+            logger.error(f"Error during application setup: {str(e)}")
     
     app.run(host='0.0.0.0', port=5000)
