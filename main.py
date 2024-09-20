@@ -344,7 +344,7 @@ def get_bookings(property_id):
     try:
         bookings = Booking.query.join(Unit).filter(
             Unit.property_id == property_id,
-            Booking.status != 'rejected'  # Add this line to exclude rejected bookings
+            Booking.status != 'rejected'
         ).all()
         events = [
             {
@@ -537,4 +537,13 @@ if __name__ == '__main__':
         except Exception as e:
             logger.error(f"Error during application setup: {str(e)}")
     
-    app.run(host='0.0.0.0', port=5000)
+    # Use Replit's environment variable for port if available
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Check if running on Replit
+    if 'REPL_SLUG' in os.environ:
+        # Running on Replit, use 0.0.0.0 as host
+        app.run(host='0.0.0.0', port=port)
+    else:
+        # Local development
+        app.run(port=port, debug=True)
