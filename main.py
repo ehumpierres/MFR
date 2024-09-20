@@ -122,7 +122,7 @@ Organization Status: {booking.organization_status}"""
 def notify_guest(booking):
     try:
         subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
-        body = f"""Your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+        body = f"""{booking.guest_name} your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
