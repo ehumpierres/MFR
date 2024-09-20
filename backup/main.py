@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,9 +14,10 @@ from config import Config
 from functools import wraps
 from flask_migrate import Migrate
 from icalendar import Calendar, Event
-from io import BytesIO
+from io import BytesIO, StringIO
 from forms import LoginForm, BookingForm, NotificationEmailForm
 from models import db, User, Property, Unit, Booking, NotificationEmail
+import csv
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -344,7 +345,7 @@ def get_bookings(property_id):
     try:
         bookings = Booking.query.join(Unit).filter(
             Unit.property_id == property_id,
-            Booking.status != 'rejected'  # Add this line to exclude rejected bookings
+            Booking.status != 'rejected'
         ).all()
         events = [
             {
@@ -448,6 +449,53 @@ def test_email():
         logger.error(f"Failed to send test email: {str(e)}")
         return f"Failed to send test email: {str(e)}", 500
 
+@app.route('/admin/download_csv')
+@login_required
+@admin_required
+def download_csv():
+    try:
+        bookings = Booking.query.all()
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['ID', 'Property', 'Unit', 'Guest Name', 'Start Date', 'End Date', 'Arrival Time', 'Departure Time', 'Guest Email', 'Number of Guests', 'Status', 'Catering Option', 'Special Requests', 'Mobility Impaired', 'Event Manager Contact', 'Offsite Emergency Contact', 'Mitchell Sponsor', 'Exclusive Use', 'Organization Status'])
+        
+        # Write data
+        for booking in bookings:
+            writer.writerow([
+                booking.id,
+                booking.unit.property.name,
+                booking.unit.name,
+                booking.guest_name,
+                booking.start_date,
+                booking.end_date,
+                booking.arrival_time,
+                booking.departure_time,
+                booking.guest_email,
+                booking.num_guests,
+                booking.status,
+                booking.catering_option,
+                booking.special_requests,
+                'Yes' if booking.mobility_impaired else 'No',
+                booking.event_manager_contact,
+                booking.offsite_emergency_contact,
+                booking.mitchell_sponsor,
+                booking.exclusive_use,
+                booking.organization_status
+            ])
+        
+        output.seek(0)
+        return send_file(BytesIO(output.getvalue().encode()),
+                         mimetype='text/csv',
+                         as_attachment=True,
+                         download_name='bookings.csv')
+    except Exception as e:
+        logger.error(f"Error generating CSV: {str(e)}")
+        flash('An error occurred while generating the CSV file.', 'error')
+        return redirect(url_for('admin'))
+
 def create_sample_data():
     logger.info("Resetting database and creating sample data...")
     try:
@@ -537,4 +585,13 @@ if __name__ == '__main__':
         except Exception as e:
             logger.error(f"Error during application setup: {str(e)}")
     
-    app.run(host='0.0.0.0', port=5000)
+    # Use Replit's environment variable for port if available
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Check if running on Replit
+    if 'REPL_SLUG' in os.environ:
+        # Running on Replit, use 0.0.0.0 as host
+        app.run(host='0.0.0.0', port=port)
+    else:
+        # Local development
+        app.run(port=port, debug=True)

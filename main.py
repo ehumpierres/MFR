@@ -490,7 +490,7 @@ def download_csv():
         return send_file(BytesIO(output.getvalue().encode()),
                          mimetype='text/csv',
                          as_attachment=True,
-                         attachment_filename='bookings.csv')
+                         download_name='bookings.csv')
     except Exception as e:
         logger.error(f"Error generating CSV: {str(e)}")
         flash('An error occurred while generating the CSV file.', 'error')
