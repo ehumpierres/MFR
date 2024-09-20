@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ property.name }}{% endblock %}
+
+{% block extra_css %}
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css' rel='stylesheet' />
+{% endblock %}
+
+{% block content %}
+    <h2>{{ property.name }}</h2>
+    <p>{{ property.description }}</p>
+
+    <h3>Available Units</h3>
+    <ul>
+        {% for unit in property.units %}
+            <li>{{ unit.name }}</li>
+        {% endfor %}
+    </ul>
+
+    <a href="{{ url_for('book') }}" class="btn btn-primary">Make a Booking</a>
+    <br><br>
+
+    <h3>Booking Calendar</h3>
+    <div id='calendar'></div>
+
+    <h3>Upcoming Bookings</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Unit</th>
+                <th>Guest Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in upcoming_bookings %}
+                <tr>
+                    <td>{{ booking.unit.name }}</td>
+                    <td>{{ booking.guest_name }}</td>
+                    <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block extra_js %}
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js'></script>
+    <script>
+        var propertyId = {{ property.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+    <h2>Admin Panel</h2>
+    
+    <a href="{{ url_for('admin_database') }}" class="btn btn-primary mb-3">Database Operations</a>
+    
+    <h3>Pending Booking Requests</h3>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Unit</th>
+                    <th>Guest Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Arrival Time</th>
+                    <th>Departure Time</th>
+                    <th>Guest Email</th>
+                    <th>Number of Guests</th>
+                    <th>Catering Option</th>
+                    <th>Special Requests</th>
+                    <th>Mobility Impaired</th>
+                    <th>Event Manager Contact</th>
+                    <th>Offsite Emergency Contact</th>
+                    <th>Mitchell Sponsor</th>
+                    <th>Exclusive Use</th>
+                    <th>Organization Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                    <tr data-booking-id="{{ booking.id }}">
+                        <td>{{ booking.unit.property.name }}</td>
+                        <td>{{ booking.unit.name }}</td>
+                        <td>{{ booking.guest_name }}</td>
+                        <td>{{ booking.start_date }}</td>
+                        <td>{{ booking.end_date }}</td>
+                        <td>{{ booking.arrival_time }}</td>
+                        <td>{{ booking.departure_time }}</td>
+                        <td>{{ booking.guest_email }}</td>
+                        <td>{{ booking.num_guests }}</td>
+                        <td>{{ booking.catering_option }}</td>
+                        <td>{{ booking.special_requests }}</td>
+                        <td>{{ 'Yes' if booking.mobility_impaired else 'No' }}</td>
+                        <td>{{ booking.event_manager_contact }}</td>
+                        <td>{{ booking.offsite_emergency_contact }}</td>
+                        <td>{{ booking.mitchell_sponsor }}</td>
+                        <td>{{ booking.exclusive_use }}</td>
+                        <td>{{ booking.organization_status }}</td>
+                        <td>
+                            <a href="#" onclick="approveBooking({{ booking.id }}); return false;" class="btn btn-success btn-sm">Approve</a>
+                            <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Notification Emails</h3>
+    <form method="POST" action="{{ url_for('add_notification_email') }}">
+        {{ email_form.hidden_tag() }}
+        {{ email_form.email.label }} {{ email_form.email(class="form-control") }}
+        {{ email_form.submit(class="btn btn-primary") }}
+    </form>
+    <ul>
+        {% for email in notification_emails %}
+            <li>{{ email.email }} <a href="{{ url_for('remove_notification_email', email_id=email.id) }}" class="btn btn-danger btn-sm">Remove</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function approveBooking(bookingId) {
+    fetch(`/approve/${bookingId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            // Remove the booking from the pending list
+            document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
+            // Display a success message
+            alert('Booking approved successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while approving the booking');
+        });
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-responsive {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    .table {
+        min-width: 1500px; /* Adjust this value based on the total width of all columns */
+    }
+</style>
+{% endblock %}

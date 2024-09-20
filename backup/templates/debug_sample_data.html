@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Debug Sample Data{% endblock %}
+
+{% block content %}
+    <h2>Debug Sample Data</h2>
+    
+    <h3>Properties and Units</h3>
+    {% for property in properties %}
+        <h4>{{ property.name }}</h4>
+        <p>Description: {{ property.description }}</p>
+        <h5>Units:</h5>
+        <ul>
+            {% for unit in property.units %}
+                <li>{{ unit.name }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+{% endblock %}

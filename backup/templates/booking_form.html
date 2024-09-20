@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Book a Property{% endblock %}
+
+{% block content %}
+    <h2>Book a Property</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.unit_id.label }}
+            {{ form.unit_id(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.start_date.label }}
+            {{ form.start_date(class="form-control", type="date") }}
+        </div>
+        <div class="form-group">
+            {{ form.end_date.label }}
+            {{ form.end_date(class="form-control", type="date") }}
+        </div>
+        <div class="form-group">
+            {{ form.arrival_time.label }}
+            {{ form.arrival_time(class="form-control", type="time") }}
+        </div>
+        <div class="form-group">
+            {{ form.departure_time.label }}
+            {{ form.departure_time(class="form-control", type="time") }}
+        </div>
+        <div class="form-group">
+            {{ form.guest_name.label }}
+            {{ form.guest_name(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.guest_email.label }}
+            {{ form.guest_email(class="form-control", type="email") }}
+        </div>
+        <div class="form-group">
+            {{ form.num_guests.label }}
+            {{ form.num_guests(class="form-control", type="number") }}
+        </div>
+        <div class="form-group">
+            {{ form.catering_option.label }}
+            {% for subfield in form.catering_option %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.special_requests.label }}
+            {{ form.special_requests(class="form-control", rows="3") }}
+        </div>
+        <div class="form-group">
+            {{ form.mobility_impaired.label }}
+            {% for subfield in form.mobility_impaired %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.event_manager_contact.label }}
+            {{ form.event_manager_contact(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.offsite_emergency_contact.label }}
+            {{ form.offsite_emergency_contact(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.mitchell_sponsor.label }}
+            {{ form.mitchell_sponsor(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.exclusive_use.label }}
+            {% for subfield in form.exclusive_use %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.organization_status.label }}
+            {% for subfield in form.organization_status %}
+                <div class="form-check">
+                    {{ subfield(class="form-check-input") }}
+                    {{ subfield.label(class="form-check-label") }}
+                </div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+{% endblock %}
