@@ -165,10 +165,10 @@ def login():
         admin_user = User.query.filter_by(username='admin').first()
         regular_user = User.query.filter_by(username='user').first()
         
-        if admin_user and check_password_hash(admin_user.password_hash, form.passphrase.data):
+        if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
             login_user(admin_user)
             return redirect(url_for('index'))
-        elif regular_user and check_password_hash(regular_user.password_hash, form.passphrase.data):
+        elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
             login_user(regular_user)
             return redirect(url_for('index'))
         
@@ -545,9 +545,9 @@ def create_sample_data():
 
         # Create users
         admin_user = User(username='admin')
-        admin_user.set_password('admin_passphrase')
+        admin_user.set_password(app.config['ADMIN_PASSPHRASE'])
         regular_user = User(username='user')
-        regular_user.set_password('user_passphrase')
+        regular_user.set_password(app.config['USER_PASSPHRASE'])
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
         logger.info("Created admin and regular user accounts")
@@ -595,5 +595,3 @@ if __name__ == '__main__':
     else:
         # Local development
         app.run(port=port, debug=True)
-
-#The End

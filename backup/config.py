@@ -18,3 +18,7 @@ class Config:
     # Replit-specific configuration
     if 'REPL_SLUG' in os.environ:
         SQLALCHEMY_DATABASE_URI = f"postgresql://{os.environ['PGUSER']}:{os.environ['PGPASSWORD']}@{os.environ['PGHOST']}:{os.environ['PGPORT']}/{os.environ['PGDATABASE']}"
+
+    # User and Admin passphrases
+    USER_PASSPHRASE = os.environ.get('USER_PASSPHRASE')
+    ADMIN_PASSPHRASE = os.environ.get('ADMIN_PASSPHRASE')
