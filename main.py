@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, create_engine
@@ -17,7 +18,6 @@ from io import BytesIO, StringIO
 from forms import LoginForm, BookingForm, NotificationEmailForm
 from models import db, User, Property, Unit, Booking, NotificationEmail
 import csv
-import sys
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -26,9 +26,8 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mail = Mail(app)
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
-logger.addHandler(logging.StreamHandler(sys.stdout))
 
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        poolclass=QueuePool,
@@ -166,10 +165,10 @@ def login():
         admin_user = User.query.filter_by(username='admin').first()
         regular_user = User.query.filter_by(username='user').first()
         
-        if admin_user and admin_user.check_password(app.config['ADMIN_PASSPHRASE']):
+        if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
             login_user(admin_user)
             return redirect(url_for('index'))
-        elif regular_user and regular_user.check_password(app.config['USER_PASSPHRASE']):
+        elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
             login_user(regular_user)
             return redirect(url_for('index'))
         
@@ -497,24 +496,17 @@ def download_csv():
         flash('An error occurred while generating the CSV file.', 'error')
         return redirect(url_for('admin'))
 
-def is_database_initialized():
-    try:
-        return User.query.first() is not None
-    except Exception as e:
-        logger.error(f"Error checking if database is initialized: {str(e)}")
-        return False
-
 def create_sample_data():
-    if is_database_initialized():
-        logger.info("Database already initialized. Skipping sample data creation.")
-        return
-
     logger.info("Resetting database and creating sample data...")
     try:
-        # Drop all existing tables and recreate them
-        db.drop_all()
-        db.create_all()
-        logger.info("Existing data cleared and tables recreated")
+        # Clear existing data
+        Booking.query.delete()
+        Unit.query.delete()
+        Property.query.delete()
+        User.query.delete()
+        NotificationEmail.query.delete()
+        db.session.commit()
+        logger.info("Existing data cleared")
 
         # Create properties
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
@@ -553,15 +545,12 @@ def create_sample_data():
 
         # Create users
         admin_user = User(username='admin')
-        logger.debug(f"Creating admin user with passphrase: {app.config['ADMIN_PASSPHRASE'][:3]}***")
         admin_user.set_password(app.config['ADMIN_PASSPHRASE'])
         regular_user = User(username='user')
-        logger.debug(f"Creating regular user with passphrase: {app.config['USER_PASSPHRASE'][:3]}***")
         regular_user.set_password(app.config['USER_PASSPHRASE'])
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
         logger.info("Created admin and regular user accounts")
-        logger.debug(f"Admin user ID: {admin_user.id}, Regular user ID: {regular_user.id}")
 
         logger.info("Sample data created successfully")
     except SQLAlchemyError as e:
@@ -591,8 +580,7 @@ if __name__ == '__main__':
         try:
             test_db_connection()
             db.create_all()
-            if not is_database_initialized():
-                create_sample_data()
+            create_sample_data()
             logger.info("Application setup completed successfully")
         except Exception as e:
             logger.error(f"Error during application setup: {str(e)}")

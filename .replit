@@ -13,27 +13,23 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Create Backup"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Create Migration"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Apply Migration"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Run Flask App"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Initialize Migration"
+args = "Create Backup"
+
+[[workflows.workflow]]
+name = "Run Flask App"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Run Flask App Manually"
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Create Backup"
@@ -45,63 +41,6 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash create_backup.sh"
-
-[[workflows.workflow]]
-name = "Create Migration"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export FLASK_APP=main.py && flask db migrate -m 'Add salt column to User model'"
-
-[[workflows.workflow]]
-name = "Apply Migration"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export FLASK_APP=main.py && flask db upgrade"
-
-[[workflows.workflow]]
-name = "Run Flask App"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export FLASK_APP=main.py && python -m flask run --host=0.0.0.0 --port=5000"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Initialize Migration"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export FLASK_APP=main.py && flask db init"
-
-[[workflows.workflow]]
-name = "Run Flask App Manually"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 main.py"
-waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "python main.py"]
