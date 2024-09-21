@@ -2,7 +2,6 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, create_engine
@@ -165,10 +164,10 @@ def login():
         admin_user = User.query.filter_by(username='admin').first()
         regular_user = User.query.filter_by(username='user').first()
         
-        if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
+        if admin_user and admin_user.check_password(app.config['ADMIN_PASSPHRASE']):
             login_user(admin_user)
             return redirect(url_for('index'))
-        elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
+        elif regular_user and regular_user.check_password(app.config['USER_PASSPHRASE']):
             login_user(regular_user)
             return redirect(url_for('index'))
         
