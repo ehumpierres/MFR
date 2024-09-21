@@ -1,3 +1,4 @@
+python==3.11.9
 Flask==2.0.1
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==0.15.1
@@ -8,4 +9,4 @@ gunicorn==20.1.0
 Flask-Migrate==3.1.0
 icalendar==4.0.7
 Werkzeug==2.3.7
-python-3.11.9
+
