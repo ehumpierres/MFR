@@ -1,33 +1,44 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, timedelta
+from flask_migrate import Migrate
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
-import logging
-from flask_mail import Mail, Message
-from config import Config
-from functools import wraps
-from flask_migrate import Migrate
-from icalendar import Calendar, Event
-from io import BytesIO, StringIO
+from datetime import datetime, date, time, timedelta
 from forms import LoginForm, BookingForm, NotificationEmailForm
 from models import db, User, Property, Unit, Booking, NotificationEmail
+from config import Config
+import logging
+from io import StringIO, BytesIO
 import csv
+from email_utils import send_email, create_ical_invite
+import secrets
+from functools import wraps
+from icalendar import Calendar, Event
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
-logger = app.logger
+logger = logging.getLogger(__name__)
+
+logger.debug(f"SQLALCHEMY_DATABASE_URI: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')}")
+logger.debug(f"USER_PASSPHRASE set: {'USER_PASSPHRASE' in app.config}")
+logger.debug(f"ADMIN_PASSPHRASE set: {'ADMIN_PASSPHRASE' in app.config}")
+
+logger.debug(f"USER_PASSPHRASE value: {'*' * len(app.config.get('USER_PASSPHRASE', ''))}")
+logger.debug(f"ADMIN_PASSPHRASE value: {'*' * len(app.config.get('ADMIN_PASSPHRASE', ''))}")
+
+print("User passphrase is set:", "USER_PASSPHRASE" in app.config and bool(app.config["USER_PASSPHRASE"]))
+print("Admin passphrase is set:", "ADMIN_PASSPHRASE" in app.config and bool(app.config["ADMIN_PASSPHRASE"]))
 
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        poolclass=QueuePool,
@@ -36,8 +47,6 @@ engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        pool_timeout=30,
                        pool_recycle=1800)
 db.session = scoped_session(sessionmaker(bind=engine))
-
-migrate = Migrate(app, db)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -67,21 +76,6 @@ def generate_ical(booking):
 
     cal.add_component(event)
     return cal.to_ical()
-
-def send_notification_email(subject, body, recipients, ical_attachment=None):
-    try:
-        msg = Message(subject, recipients=recipients)
-        msg.body = body
-        
-        if ical_attachment:
-            msg.attach("event.ics", "text/calendar", ical_attachment)
-        
-        mail.send(msg)
-        logger.info(f"Email sent successfully to {recipients}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to send email: {str(e)}")
-        return False
 
 def notify_admins(booking):
     try:
@@ -113,7 +107,7 @@ Organization Status: {booking.organization_status}"""
             logger.error("Failed to generate iCal attachment")
             return False
 
-        result = send_notification_email(subject, body, admin_emails, ical_attachment)
+        result = send_email(subject, body, admin_emails, ical_attachment)
         logger.debug(f"Result of sending admin notification: {result}")
         return result
     except Exception as e:
@@ -145,7 +139,7 @@ Organization Status: {booking.organization_status}"""
             if admin_emails:
                 recipients.extend(admin_emails)
 
-        return send_notification_email(subject, body, recipients, ical_attachment)
+        return send_email(subject, body, recipients, ical_attachment)
     except Exception as e:
         logger.error(f'Error notifying guest for booking {booking.id}: {str(e)}')
         return False
@@ -165,13 +159,22 @@ def login():
         admin_user = User.query.filter_by(username='admin').first()
         regular_user = User.query.filter_by(username='user').first()
         
+        logger.debug(f"Admin passphrase from config: {app.config['ADMIN_PASSPHRASE']}")
+        logger.debug(f"User passphrase from config: {app.config['USER_PASSPHRASE']}")
+        logger.debug(f"Submitted passphrase: {form.passphrase.data}")
+        logger.debug(f"Admin user found: {admin_user is not None}")
+        logger.debug(f"Regular user found: {regular_user is not None}")
+        
         if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
+            logger.debug("Admin login successful")
             login_user(admin_user)
             return redirect(url_for('index'))
         elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
+            logger.debug("Regular user login successful")
             login_user(regular_user)
             return redirect(url_for('index'))
         
+        logger.debug("Invalid passphrase")
         flash('Invalid passphrase')
     return render_template('login.html', form=form)
 
@@ -459,10 +462,8 @@ def download_csv():
         output = StringIO()
         writer = csv.writer(output)
         
-        # Write header
         writer.writerow(['ID', 'Property', 'Unit', 'Guest Name', 'Start Date', 'End Date', 'Arrival Time', 'Departure Time', 'Guest Email', 'Number of Guests', 'Status', 'Catering Option', 'Special Requests', 'Mobility Impaired', 'Event Manager Contact', 'Offsite Emergency Contact', 'Mitchell Sponsor', 'Exclusive Use', 'Organization Status'])
         
-        # Write data
         for booking in bookings:
             writer.writerow([
                 booking.id,
@@ -499,7 +500,6 @@ def download_csv():
 def create_sample_data():
     logger.info("Resetting database and creating sample data...")
     try:
-        # Clear existing data
         Booking.query.delete()
         Unit.query.delete()
         Property.query.delete()
@@ -508,14 +508,12 @@ def create_sample_data():
         db.session.commit()
         logger.info("Existing data cleared")
 
-        # Create properties
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
         cbm = Property(name="CBM", description="Firemeadow, Sunday House")
         db.session.add_all([cbc, cbm])
         db.session.commit()
         logger.info(f"Created properties: CBC (id: {cbc.id}), CBM (id: {cbm.id})")
 
-        # Create units
         cbc_units = [
             Unit(name="Log Cabin", property_id=cbc.id),
             Unit(name="Pavilion", property_id=cbc.id),
@@ -543,7 +541,6 @@ def create_sample_data():
         db.session.commit()
         logger.info(f"Created {len(cbc_units)} units for CBC and {len(cbm_units)} units for CBM")
 
-        # Create users
         admin_user = User(username='admin')
         admin_user.set_password(app.config['ADMIN_PASSPHRASE'])
         regular_user = User(username='user')
@@ -578,20 +575,25 @@ def debug_sample_data():
 if __name__ == '__main__':
     with app.app_context():
         try:
+            logger.info("Starting application setup...")
             test_db_connection()
+            logger.info("Database connection successful")
             db.create_all()
+            logger.info("Database tables created")
             create_sample_data()
+            logger.info("Sample data created")
             logger.info("Application setup completed successfully")
         except Exception as e:
             logger.error(f"Error during application setup: {str(e)}")
+            raise
     
-    # Use Replit's environment variable for port if available
     port = int(os.environ.get('PORT', 5000))
     
-    # Check if running on Replit
     if 'REPL_SLUG' in os.environ:
-        # Running on Replit, use 0.0.0.0 as host
+        logger.info(f"Starting Flask application on port {port}")
         app.run(host='0.0.0.0', port=port)
     else:
-        # Local development
+        logger.info(f"Starting Flask application in debug mode on port {port}")
         app.run(port=port, debug=True)
+
+logger.info("Flask application has stopped")

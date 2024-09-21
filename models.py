@@ -1,19 +1,22 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
 
 db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+    username = db.Column(db.String(64), index=True, unique=True)
+    password_hash = db.Column(db.String(255))  # Increased from 128 to 255
+    salt = db.Column(db.String(255))  # Increased from 128 to 255
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.salt = secrets.token_hex(16)
+        self.password_hash = generate_password_hash(password + self.salt)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password_hash, password + self.salt)
 
     def is_admin(self):
         return self.username == 'admin'
