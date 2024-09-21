@@ -13,10 +13,6 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Run Flask App"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Create Backup"
 
 [[workflows.workflow.tasks]]
@@ -27,17 +23,9 @@ args = "Create Migration"
 task = "workflow.run"
 args = "Apply Migration"
 
-[[workflows.workflow]]
-name = "Run Flask App"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-waitForPort = 5000
+task = "workflow.run"
+args = "Run Flask App"
 
 [[workflows.workflow]]
 name = "Create Backup"
@@ -59,7 +47,7 @@ agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "flask db migrate -m 'Add salt column to User model'"
+args = "export FLASK_APP=main.py && python -m flask db migrate -m 'Add salt column to User model'"
 
 [[workflows.workflow]]
 name = "Apply Migration"
@@ -70,7 +58,19 @@ agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "flask db upgrade"
+args = "export FLASK_APP=main.py && python -m flask db upgrade"
+
+[[workflows.workflow]]
+name = "Run Flask App"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export FLASK_APP=main.py && python -m flask run --host=0.0.0.0 --port=5000"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "python main.py"]

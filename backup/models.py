@@ -1,6 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from hashlib import sha256
+import hmac
+import os
 
 db = SQLAlchemy()
 
@@ -8,12 +10,17 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    salt = db.Column(db.String(64), nullable=False)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.salt = os.urandom(32).hex()
+        self.password_hash = self._hash_password(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return hmac.compare_digest(self.password_hash, self._hash_password(password))
+
+    def _hash_password(self, password):
+        return hmac.new(self.salt.encode(), password.encode(), sha256).hexdigest()
 
     def is_admin(self):
         return self.username == 'admin'
