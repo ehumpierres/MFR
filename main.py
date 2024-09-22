@@ -528,11 +528,29 @@ def create_sample_data():
 
 def init_db():
     with app.app_context():
+        logger.info("Initializing database...")
         db.create_all()
-        logger.info("Ran db.create_all()")
+        logger.info("Database tables created.")
+        
+        # Check if we're running on Heroku
+        if 'DYNO' in os.environ:
+            logger.info("Running on Heroku, ensuring database is set up correctly...")
+            try:
+                # Attempt to query the database to ensure it's set up correctly
+                db.session.execute(text('SELECT 1'))
+                logger.info("Database connection successful.")
+            except SQLAlchemyError as e:
+                logger.error(f"Error connecting to database: {str(e)}")
+                logger.info("Attempting to create tables...")
+                db.create_all()
+                logger.info("Tables created.")
+        
         if Property.query.count() == 0:
+            logger.info("No properties found. Creating sample data...")
             create_sample_data()
-            logger.info("Executed the create_sample_data function")
+            logger.info("Sample data created successfully.")
+        else:
+            logger.info("Properties already exist. Skipping sample data creation.")
 
 if __name__ == '__main__':
     init_db()
