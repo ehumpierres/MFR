@@ -529,8 +529,10 @@ def create_sample_data():
 def init_db():
     with app.app_context():
         db.create_all()
+        logger.info("Ran db.create_all()")
         if Property.query.count() == 0:
             create_sample_data()
+            logger.info("Executed the create_sample_data function")
 
 if __name__ == '__main__':
     init_db()
