@@ -31,6 +31,7 @@ mail = Mail(app)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+"""
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -52,6 +53,7 @@ engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                        pool_timeout=30,
                        pool_recycle=1800)
 db.session = scoped_session(sessionmaker(bind=engine))
+"""
 
 @login_manager.user_loader
 def load_user(user_id):
