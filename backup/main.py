@@ -31,6 +31,30 @@ mail = Mail(app)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+"""
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+logger.debug(f"SQLALCHEMY_DATABASE_URI: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')}")
+logger.debug(f"USER_PASSPHRASE set: {'USER_PASSPHRASE' in app.config}")
+logger.debug(f"ADMIN_PASSPHRASE set: {'ADMIN_PASSPHRASE' in app.config}")
+
+logger.debug(f"USER_PASSPHRASE value: {'*' * len(app.config.get('USER_PASSPHRASE', ''))}")
+logger.debug(f"ADMIN_PASSPHRASE value: {'*' * len(app.config.get('ADMIN_PASSPHRASE', ''))}")
+
+print("User passphrase is set:", "USER_PASSPHRASE" in app.config and bool(app.config["USER_PASSPHRASE"]))
+print("Admin passphrase is set:", "ADMIN_PASSPHRASE" in app.config and bool(app.config["ADMIN_PASSPHRASE"]))
+
+engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
+                       poolclass=QueuePool,
+                       pool_size=5,
+                       max_overflow=10,
+                       pool_timeout=30,
+                       pool_recycle=1800)
+db.session = scoped_session(sessionmaker(bind=engine))
+"""
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -38,7 +62,7 @@ def load_user(user_id):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
+        if not current_user.is_authenticated: # or not current_user.is_admin():
             flash('Access denied. Admin privileges required.', 'danger')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -481,12 +505,21 @@ def download_csv():
         return redirect(url_for('admin'))
 
 def create_sample_data():
-    logger.info("Creating sample data...")
+    logger.info("Resetting database and creating sample data...")
     try:
+        Booking.query.delete()
+        Unit.query.delete()
+        Property.query.delete()
+        User.query.delete()
+        NotificationEmail.query.delete()
+        db.session.commit()
+        logger.info("Existing data cleared")
+
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
         cbm = Property(name="CBM", description="Firemeadow, Sunday House")
         db.session.add_all([cbc, cbm])
         db.session.commit()
+        logger.info(f"Created properties: CBC (id: {cbc.id}), CBM (id: {cbm.id})")
 
         cbc_units = [
             Unit(name="Log Cabin", property_id=cbc.id),
@@ -513,30 +546,68 @@ def create_sample_data():
         ]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
+        logger.info(f"Created {len(cbc_units)} units for CBC and {len(cbm_units)} units for CBM")
 
         admin_user = User(username='admin')
         admin_user.set_password(app.config['ADMIN_PASSPHRASE'])
+        logger.debug(f"Admin password hash: {admin_user.password_hash}")
         regular_user = User(username='user')
         regular_user.set_password(app.config['USER_PASSPHRASE'])
+        logger.debug(f"User password hash: {regular_user.password_hash}")
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
+        
+        # Verify the users were added correctly
+        admin_check = User.query.filter_by(username='admin').first()
+        user_check = User.query.filter_by(username='user').first()
+        logger.debug(f"Admin in DB: {admin_check.username}, hash: {admin_check.password_hash}")
+        logger.debug(f"User in DB: {user_check.username}, hash: {user_check.password_hash}")
 
         logger.info("Sample data created successfully")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Database error while creating sample data: {str(e)}")
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error creating sample data: {str(e)}")
+        logger.error(f"Unexpected error while creating sample data: {str(e)}")
 
-def init_db():
-    with app.app_context():
-        db.create_all()
-        logger.info("Ran db.create_all()")
-        if Property.query.count() == 0:
-            create_sample_data()
-            logger.info("Executed the create_sample_data function")
+def test_db_connection():
+    try:
+        db.session.execute(text('SELECT 1'))
+        logger.info("Database connection successful")
+    except SQLAlchemyError as e:
+        logger.error(f"Database connection failed: {str(e)}")
+        raise
+
+@app.route('/debug/sample_data')
+@login_required
+@admin_required
+def debug_sample_data():
+    properties = Property.query.all()
+    return render_template('debug_sample_data.html', properties=properties)
 
 if __name__ == '__main__':
-    init_db()
+    with app.app_context():
+        try:
+            logger.info("Starting application setup...")
+            test_db_connection()
+            logger.info("Database connection successful")
+            db.create_all()
+            logger.info("Database tables created")
+            create_sample_data()
+            logger.info("Sample data created")
+            logger.info("Application setup completed successfully")
+        except Exception as e:
+            logger.error(f"Error during application setup: {str(e)}")
+            raise
+    
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    
+    if 'REPL_SLUG' in os.environ:
+        logger.info(f"Starting Flask application on port {port}")
+        app.run(host='0.0.0.0', port=port)
+    else:
+        logger.info(f"Starting Flask application in debug mode on port {port}")
+        app.run(port=port, debug=True)
 
 logger.info("Flask application has stopped")
