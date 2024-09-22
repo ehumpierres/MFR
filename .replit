@@ -43,6 +43,10 @@ args = "Check Migrations Folder"
 task = "workflow.run"
 args = "Remove Migrations Folder"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Check Environment Variables"
+
 [[workflows.workflow]]
 name = "Run Flask App"
 author = "agent"
@@ -131,6 +135,17 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "rm -rf migrations"
+
+[[workflows.workflow]]
+name = "Check Environment Variables"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "env | grep -E 'DATABASE_URL|FLASK_|PG' | cut -d= -f1"
 
 [deployment]
 run = ["sh", "-c", "python main.py"]
