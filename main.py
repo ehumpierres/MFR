@@ -531,6 +531,7 @@ def init_db():
         db.create_all()
         if Property.query.count() == 0:
             create_sample_data()
+            logger.info("Executed the create_sample_data function")
 
 if __name__ == '__main__':
     init_db()
