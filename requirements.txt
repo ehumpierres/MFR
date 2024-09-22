@@ -11,6 +11,7 @@ passlib==1.7.4
 argon2-cffi==23.1.0
 flask-mail==0.10.0
 sqlalchemy-utils==0.41.2
+sqlalchemy==2.0.35
 wtforms==3.1.2
 
 
