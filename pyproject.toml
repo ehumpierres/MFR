@@ -20,6 +20,8 @@ sqlalchemy = "^2.0.35"
 sqlalchemy-utils = "^0.41.2"
 flask-migrate = "^4.0.7"
 icalendar = "^5.0.13"
+passlib = "^1.7.4"
+argon2-cffi = "^23.1.0"
 
 
 [build-system]

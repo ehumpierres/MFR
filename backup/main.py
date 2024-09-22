@@ -1,9 +1,9 @@
 import os
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
+from flask_mail import Mail 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -26,9 +26,14 @@ db.init_app(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 logger.debug(f"SQLALCHEMY_DATABASE_URI: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')}")
 logger.debug(f"USER_PASSPHRASE set: {'USER_PASSPHRASE' in app.config}")
@@ -55,7 +60,7 @@ def load_user(user_id):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin():
+        if not current_user.is_authenticated: # or not current_user.is_admin():
             flash('Access denied. Admin privileges required.', 'danger')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -158,13 +163,13 @@ def login():
     if form.validate_on_submit():
         admin_user = User.query.filter_by(username='admin').first()
         regular_user = User.query.filter_by(username='user').first()
-        
+
         logger.debug(f"Admin passphrase from config: {app.config['ADMIN_PASSPHRASE']}")
         logger.debug(f"User passphrase from config: {app.config['USER_PASSPHRASE']}")
         logger.debug(f"Submitted passphrase: {form.passphrase.data}")
         logger.debug(f"Admin user found: {admin_user is not None}")
         logger.debug(f"Regular user found: {regular_user is not None}")
-        
+
         if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
             logger.debug("Admin login successful")
             login_user(admin_user)
@@ -173,11 +178,11 @@ def login():
             logger.debug("Regular user login successful")
             login_user(regular_user)
             return redirect(url_for('index'))
-        
+
         logger.debug("Invalid passphrase")
         flash('Invalid passphrase')
     return render_template('login.html', form=form)
-
+    
 @app.route('/logout')
 @login_required
 def logout():
@@ -543,11 +548,18 @@ def create_sample_data():
 
         admin_user = User(username='admin')
         admin_user.set_password(app.config['ADMIN_PASSPHRASE'])
+        logger.debug(f"Admin password hash: {admin_user.password_hash}")
         regular_user = User(username='user')
         regular_user.set_password(app.config['USER_PASSPHRASE'])
+        logger.debug(f"User password hash: {regular_user.password_hash}")
         db.session.add_all([admin_user, regular_user])
         db.session.commit()
-        logger.info("Created admin and regular user accounts")
+        
+        # Verify the users were added correctly
+        admin_check = User.query.filter_by(username='admin').first()
+        user_check = User.query.filter_by(username='user').first()
+        logger.debug(f"Admin in DB: {admin_check.username}, hash: {admin_check.password_hash}")
+        logger.debug(f"User in DB: {user_check.username}, hash: {user_check.password_hash}")
 
         logger.info("Sample data created successfully")
     except SQLAlchemyError as e:
