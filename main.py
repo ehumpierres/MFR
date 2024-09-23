@@ -536,8 +536,8 @@ def create_sample_data():
 def init_db():
     with app.app_context():
         db.create_all()
-        if Property.query.count() == 0:
-            create_sample_data()
+        #if Property.query.count() == 0:
+        create_sample_data()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
