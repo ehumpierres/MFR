@@ -138,27 +138,33 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
-    if form.validate_on_submit():
-        admin_user = User.query.filter_by(username='admin').first()
-        regular_user = User.query.filter_by(username='user').first()
-
-        logger.debug(f"Admin passphrase from config: {app.config['ADMIN_PASSPHRASE']}")
-        logger.debug(f"User passphrase from config: {app.config['USER_PASSPHRASE']}")
-        logger.debug(f"Submitted passphrase: {form.passphrase.data}")
-        logger.debug(f"Admin user found: {admin_user is not None}")
-        logger.debug(f"Regular user found: {regular_user is not None}")
-
-        if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
-            logger.debug("Admin login successful")
-            login_user(admin_user)
-            return redirect(url_for('index'))
-        elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
-            logger.debug("Regular user login successful")
-            login_user(regular_user)
-            return redirect(url_for('index'))
-
-        logger.debug("Invalid passphrase")
-        flash('Invalid passphrase')
+    try:
+        if form.validate_on_submit():
+            admin_user = User.query.filter_by(username='admin').first()
+            regular_user = User.query.filter_by(username='user').first()
+    
+            logger.debug(f"Admin passphrase from config: {app.config['ADMIN_PASSPHRASE']}")
+            logger.debug(f"User passphrase from config: {app.config['USER_PASSPHRASE']}")
+            logger.debug(f"Submitted passphrase: {form.passphrase.data}")
+            logger.debug(f"Admin user found: {admin_user is not None}")
+            logger.debug(f"Regular user found: {regular_user is not None}")
+    
+            if admin_user and form.passphrase.data == app.config['ADMIN_PASSPHRASE']:
+                logger.debug("Admin login successful")
+                login_user(admin_user)
+                return redirect(url_for('index'))
+            elif regular_user and form.passphrase.data == app.config['USER_PASSPHRASE']:
+                logger.debug("Regular user login successful")
+                login_user(regular_user)
+                return redirect(url_for('index'))
+    
+            logger.debug("Invalid passphrase")
+            flash('Invalid passphrase')
+    except Exception as e:
+        logger.error(f"Error in login: {str(e)}")
+        import traceback 
+        logger.error(traceback.format_exc())
+        
     return render_template('login.html', form=form)
     
 @app.route('/logout')
