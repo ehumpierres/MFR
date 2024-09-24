@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask.cli import with_appcontext
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
@@ -19,6 +20,7 @@ from email_utils import send_email, create_ical_invite
 import secrets
 from functools import wraps
 from icalendar import Calendar, Event
+import click
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -539,6 +541,11 @@ def init_db():
         db.create_all()
         if Property.query.count() == 0:
             create_sample_data()
+@click.command('create-sample-data')
+@with_appcontext
+def create_sample_data_command():
+    create_sample_data()
+app.cli.add_command(create_sample_data_command)
 
 if __name__ == '__main__':
     with app.app_context():
