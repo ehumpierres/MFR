@@ -22,7 +22,7 @@ from icalendar import Calendar, Event
 
 app = Flask(__name__)
 app.config.from_object(Config)
-#db.init_app(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 migrate.init_app(app)
 login_manager = LoginManager(app)
