@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask.cli import with_appcontext
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
@@ -19,11 +20,13 @@ from email_utils import send_email, create_ical_invite
 import secrets
 from functools import wraps
 from icalendar import Calendar, Event
+import click
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
-migrate = Migrate(app, db)
+#migrate = Migrate(app, db)
+#migrate.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mail = Mail(app)
@@ -532,14 +535,13 @@ def create_sample_data():
         db.session.rollback()
         logger.error(f"Error creating sample data: {str(e)}")
 
-def init_db():
-    with app.app_context():
-        db.create_all()
-        if Property.query.count() == 0:
-            create_sample_data()
+@click.command('create-sample-data')
+@with_appcontext
+def create_sample_data_command():
+    create_sample_data()
+app.cli.add_command(create_sample_data_command)
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 

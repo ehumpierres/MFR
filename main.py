@@ -25,8 +25,8 @@ import click
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
-migrate = Migrate(app, db)
-migrate.init_app(app)
+#migrate = Migrate(app, db)
+#migrate.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mail = Mail(app)
@@ -142,7 +142,6 @@ def index():
 def login():
     form = LoginForm()
     try:
-        #init_db()
         if form.validate_on_submit():
             admin_user = User.query.filter_by(username='admin').first()
             regular_user = User.query.filter_by(username='user').first()
@@ -536,11 +535,6 @@ def create_sample_data():
         db.session.rollback()
         logger.error(f"Error creating sample data: {str(e)}")
 
-def init_db():
-    with app.app_context():
-        db.create_all()
-        if Property.query.count() == 0:
-            create_sample_data()
 @click.command('create-sample-data')
 @with_appcontext
 def create_sample_data_command():
@@ -548,8 +542,6 @@ def create_sample_data_command():
 app.cli.add_command(create_sample_data_command)
 
 if __name__ == '__main__':
-    with app.app_context():
-        init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
