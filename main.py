@@ -91,9 +91,14 @@ def get_units(property_id):
 def book():
     form = BookingForm()
     
-    form.property_id.choices = [(p.id, p.name) for p in Property.query.all()]
+    properties = Property.query.all()
+    form.property_id.choices = [(p.id, p.name) for p in properties]
     
-    form.units.choices = []
+    if properties:
+        first_property = properties[0]
+        form.units.choices = [(u.id, u.name) for u in first_property.units]
+    else:
+        form.units.choices = []
     
     if form.validate_on_submit():
         if not form.units.data:
@@ -126,7 +131,7 @@ def book():
             db.session.add(booking)
             db.session.commit()
             notify_admins(booking)
-            flash('Booking request submitted successfully')
+            flash('Booking request submitted successfully', 'success')
             return redirect(url_for('index'))
         except SQLAlchemyError as e:
             db.session.rollback()
@@ -136,6 +141,7 @@ def book():
             db.session.rollback()
             logger.error(f"Unexpected error while submitting booking: {str(e)}")
             flash('An unexpected error occurred. Please try again later.', 'error')
+    
     return render_template('booking_form.html', form=form)
 
 @app.route('/api/bookings/<int:property_id>')
