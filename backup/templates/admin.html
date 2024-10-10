@@ -30,7 +30,6 @@
                     <th>Mitchell Sponsor</th>
                     <th>Exclusive Use</th>
                     <th>Organization Status</th>
-                    <th>Current Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -54,14 +53,9 @@
                         <td>{{ booking.mitchell_sponsor }}</td>
                         <td>{{ booking.exclusive_use }}</td>
                         <td>{{ booking.organization_status }}</td>
-                        <td>{{ booking.status }}</td>
                         <td>
-                            <select class="form-control status-select" data-booking-id="{{ booking.id }}">
-                                <option value="pending" {% if booking.status == 'pending' %}selected{% endif %}>Pending</option>
-                                <option value="approved" {% if booking.status == 'approved' %}selected{% endif %}>Approved</option>
-                                <option value="rejected" {% if booking.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                            </select>
-                            <button class="btn btn-primary btn-sm mt-2 change-status-btn" data-booking-id="{{ booking.id }}">Change Status</button>
+                            <a href="#" onclick="approveBooking({{ booking.id }}); return false;" class="btn btn-success btn-sm">Approve</a>
+                            <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -84,37 +78,20 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const changeStatusButtons = document.querySelectorAll('.change-status-btn');
-    changeStatusButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const bookingId = this.dataset.bookingId;
-            const statusSelect = document.querySelector(`.status-select[data-booking-id="${bookingId}"]`);
-            const newStatus = statusSelect.value;
-
-            fetch(`/change_booking_status/${bookingId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Booking status updated successfully');
-                    location.reload(); // Reload the page to reflect changes
-                } else {
-                    alert('Failed to update booking status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while updating the booking status');
-            });
+function approveBooking(bookingId) {
+    fetch(`/approve/${bookingId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            // Remove the booking from the pending list
+            document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
+            // Display a success message
+            alert('Booking approved successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while approving the booking');
         });
-    });
-});
+}
 </script>
 {% endblock %}
 
