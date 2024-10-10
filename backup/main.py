@@ -344,16 +344,8 @@ def get_bookings(property_id):
                 'guestName': booking.guest_name,
                 'guestEmail': booking.guest_email,
                 'numGuests': booking.num_guests,
-                'arrivalTime': booking.arrival_time.strftime('%H:%M'),
-                'departureTime': booking.departure_time.strftime('%H:%M'),
                 'cateringOption': booking.catering_option,
-                'specialRequests': booking.special_requests,
-                'mobilityImpaired': 'Yes' if booking.mobility_impaired else 'No',
-                'eventManagerContact': booking.event_manager_contact,
-                'offsiteEmergencyContact': booking.offsite_emergency_contact,
-                'mitchellSponsor': booking.mitchell_sponsor,
-                'exclusiveUse': booking.exclusive_use,
-                'organizationStatus': booking.organization_status
+                'specialRequests': booking.special_requests
             }
             for booking in bookings
         ]

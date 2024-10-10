@@ -36,15 +36,6 @@
             text-decoration: none;
             cursor: pointer;
         }
-        .booking-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .booking-details p {
-            margin: 0;
-            padding: 5px 0;
-        }
     </style>
 {% endblock %}
 
@@ -92,7 +83,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 id="modalTitle"></h2>
-            <div id="modalBody" class="booking-details"></div>
+            <div id="modalBody"></div>
         </div>
     </div>
 {% endblock %}
