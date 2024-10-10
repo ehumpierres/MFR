@@ -176,6 +176,15 @@ def get_bookings(property_id):
         logger.error(f"Unexpected error while fetching bookings: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
+@app.route('/admin')
+@login_required
+@admin_required
+def admin():
+    bookings = Booking.query.filter_by(status='pending').all()
+    email_form = NotificationEmailForm()
+    notification_emails = NotificationEmail.query.all()
+    return render_template('admin.html', bookings=bookings, email_form=email_form, notification_emails=notification_emails)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
