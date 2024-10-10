@@ -12,7 +12,7 @@
         </div>
         <div class="form-group">
             {{ form.units.label }}
-            {{ form.units(class="form-control", id="unit-select", multiple=true) }}
+            {{ form.units(class="form-control", id="unit-select") }}
         </div>
         <div class="form-group">
             {{ form.start_date.label }}
@@ -125,12 +125,12 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block extra_css %}
 <style>
     .custom-select {
-        height: 80px;
-        max-height: 80px;
+        height: auto;
+        max-height: 200px;
         overflow-y: auto;
     }
     
-    #property-select {
+    #property-select, #unit-select {
         width: 100%;
         padding: 10px;
         font-size: 16px;
@@ -138,21 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
         border-radius: 4px;
     }
     
-    #property-select option {
+    #property-select option, #unit-select option {
         padding: 5px;
-    }
-
-    #unit-select {
-        width: 100%;
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        height: 150px;
-    }
-
-    #unit-select option {
-        padding: 2px;
     }
 </style>
 {% endblock %}
