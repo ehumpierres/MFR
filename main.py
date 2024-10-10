@@ -231,6 +231,16 @@ def add_notification_email():
         flash('Invalid email address', 'error')
     return redirect(url_for('admin'))
 
+@app.route('/remove_notification_email/<int:email_id>', methods=['POST'])
+@login_required
+@admin_required
+def remove_notification_email(email_id):
+    email = NotificationEmail.query.get_or_404(email_id)
+    db.session.delete(email)
+    db.session.commit()
+    flash('Notification email removed successfully', 'success')
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

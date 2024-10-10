@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
@@ -73,7 +73,7 @@ def logout():
 @login_required
 def property_details(property_id):
     property = Property.query.get_or_404(property_id)
-    upcoming_bookings = Booking.query.join(Booking.units).join(Unit).filter(
+    upcoming_bookings = Booking.query.join(Booking.units).filter(
         Unit.property_id == property_id,
         Booking.status == 'approved',
         Booking.start_date >= date.today()
@@ -139,7 +139,7 @@ def book():
 @login_required
 def get_bookings(property_id):
     try:
-        bookings = Booking.query.join(Booking.units).join(Unit).filter(
+        bookings = Booking.query.join(Booking.units).filter(
             Unit.property_id == property_id,
             Booking.status != 'rejected'
         ).all()
@@ -184,6 +184,52 @@ def admin():
     email_form = NotificationEmailForm()
     notification_emails = NotificationEmail.query.all()
     return render_template('admin.html', bookings=bookings, email_form=email_form, notification_emails=notification_emails)
+
+@app.route('/admin/database')
+@login_required
+@admin_required
+def admin_database():
+    properties = Property.query.all()
+    units = Unit.query.all()
+    return render_template('admin_database.html', properties=properties, units=units)
+
+@app.route('/download_csv')
+@login_required
+@admin_required
+def download_csv():
+    si = StringIO()
+    cw = csv.writer(si)
+    bookings = Booking.query.all()
+    cw.writerow(['ID', 'Guest Name', 'Guest Email', 'Property', 'Units', 'Start Date', 'End Date', 'Status'])
+    for booking in bookings:
+        cw.writerow([
+            booking.id,
+            booking.guest_name,
+            booking.guest_email,
+            booking.units[0].property.name if booking.units else '',
+            ', '.join([unit.name for unit in booking.units]),
+            booking.start_date,
+            booking.end_date,
+            booking.status
+        ])
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=bookings.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
+@app.route('/add_notification_email', methods=['POST'])
+@login_required
+@admin_required
+def add_notification_email():
+    form = NotificationEmailForm()
+    if form.validate_on_submit():
+        email = NotificationEmail(email=form.email.data)
+        db.session.add(email)
+        db.session.commit()
+        flash('Notification email added successfully', 'success')
+    else:
+        flash('Invalid email address', 'error')
+    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
