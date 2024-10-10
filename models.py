@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from passlib.hash import argon2
-#import secrets
 
 db = SQLAlchemy()
 
