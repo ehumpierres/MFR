@@ -90,7 +90,10 @@ def get_units(property_id):
 @login_required
 def book():
     form = BookingForm()
+    
     form.property_id.choices = [(p.id, p.name) for p in Property.query.all()]
+    
+    form.units.choices = []
     
     if form.validate_on_submit():
         if not form.units.data:
