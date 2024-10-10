@@ -32,7 +32,6 @@ function showBookingDetails(event) {
 
     modalTitle.textContent = event.title;
     modalBody.innerHTML = `
-        <p><strong>Status:</strong> ${event.extendedProps.status}</p>
         <p><strong>Start Date:</strong> ${event.start.toLocaleDateString()}</p>
         <p><strong>End Date:</strong> ${event.end.toLocaleDateString()}</p>
         <p><strong>Arrival Time:</strong> ${event.extendedProps.arrivalTime}</p>
@@ -46,8 +45,9 @@ function showBookingDetails(event) {
         <p><strong>Event Manager Contact:</strong> ${event.extendedProps.eventManagerContact}</p>
         <p><strong>Offsite Emergency Contact:</strong> ${event.extendedProps.offsiteEmergencyContact}</p>
         <p><strong>Mitchell Sponsor:</strong> ${event.extendedProps.mitchellSponsor}</p>
-        <p><strong>Exclusive Use:</strong> ${event.extendedProps.exclusiveUse}</p>
-        <p><strong>Organization Status:</strong> ${event.extendedProps.organizationStatus}</p>
+        <p><strong>Type of Use:</strong> ${event.extendedProps.exclusiveUse}</p>
+        <p><strong>Organization Type:</strong> ${event.extendedProps.organizationStatus}</p>
+        <p><strong>Status:</strong> ${event.extendedProps.status}</p>
     `;
 
     modal.style.display = 'block';
