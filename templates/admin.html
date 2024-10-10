@@ -14,7 +14,7 @@
             <thead>
                 <tr>
                     <th>Property</th>
-                    <th>Unit</th>
+                    <th>Units</th>
                     <th>Guest Name</th>
                     <th>Start Date</th>
                     <th>End Date</th>
@@ -36,8 +36,8 @@
             <tbody>
                 {% for booking in bookings %}
                     <tr data-booking-id="{{ booking.id }}">
-                        <td>{{ booking.unit.property.name }}</td>
-                        <td>{{ booking.unit.name }}</td>
+                        <td>{{ booking.units[0].property.name }}</td>
+                        <td>{{ ', '.join([unit.name for unit in booking.units]) }}</td>
                         <td>{{ booking.guest_name }}</td>
                         <td>{{ booking.start_date }}</td>
                         <td>{{ booking.end_date }}</td>
