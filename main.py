@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
@@ -192,6 +192,30 @@ def admin_database():
     properties = Property.query.all()
     units = Unit.query.all()
     return render_template('admin_database.html', properties=properties, units=units)
+
+@app.route('/download_csv')
+@login_required
+@admin_required
+def download_csv():
+    si = StringIO()
+    cw = csv.writer(si)
+    bookings = Booking.query.all()
+    cw.writerow(['ID', 'Guest Name', 'Guest Email', 'Property', 'Units', 'Start Date', 'End Date', 'Status'])
+    for booking in bookings:
+        cw.writerow([
+            booking.id,
+            booking.guest_name,
+            booking.guest_email,
+            booking.units[0].property.name if booking.units else '',
+            ', '.join([unit.name for unit in booking.units]),
+            booking.start_date,
+            booking.end_date,
+            booking.status
+        ])
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=bookings.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
