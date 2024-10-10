@@ -73,7 +73,7 @@ def logout():
 @login_required
 def property_details(property_id):
     property = Property.query.get_or_404(property_id)
-    upcoming_bookings = Booking.query.join(Booking.units).join(Unit).filter(
+    upcoming_bookings = Booking.query.join(Booking.units).filter(
         Unit.property_id == property_id,
         Booking.status == 'approved',
         Booking.start_date >= date.today()
@@ -139,7 +139,7 @@ def book():
 @login_required
 def get_bookings(property_id):
     try:
-        bookings = Booking.query.join(Booking.units).join(Unit).filter(
+        bookings = Booking.query.join(Booking.units).filter(
             Unit.property_id == property_id,
             Booking.status != 'rejected'
         ).all()
