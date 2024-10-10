@@ -7,12 +7,8 @@
     <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
-            {{ form.property_id.label }}
-            {{ form.property_id(class="form-control custom-select", id="property-select") }}
-        </div>
-        <div class="form-group">
-            {{ form.units.label }}
-            {{ form.units(class="form-control", id="unit-select") }}
+            {{ form.unit_id.label }}
+            {{ form.unit_id(class="form-control") }}
         </div>
         <div class="form-group">
             {{ form.start_date.label }}
@@ -96,50 +92,4 @@
         </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const propertySelect = document.getElementById('property-select');
-    const unitSelect = document.getElementById('unit-select');
-
-    propertySelect.addEventListener('change', function() {
-        const propertyId = this.value;
-        fetch(`/get_units/${propertyId}`)
-            .then(response => response.json())
-            .then(units => {
-                unitSelect.innerHTML = '';
-                units.forEach(unit => {
-                    const option = document.createElement('option');
-                    option.value = unit.id;
-                    option.textContent = unit.name;
-                    unitSelect.appendChild(option);
-                });
-            });
-    });
-});
-</script>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .custom-select {
-        height: auto;
-        max-height: 200px;
-        overflow-y: auto;
-    }
-    
-    #property-select, #unit-select {
-        width: 100%;
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-    }
-    
-    #property-select option, #unit-select option {
-        padding: 5px;
-    }
-</style>
 {% endblock %}

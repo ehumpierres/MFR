@@ -32,6 +32,7 @@ function showBookingDetails(event) {
 
     modalTitle.textContent = event.title;
     modalBody.innerHTML = `
+        <p><strong>Status:</strong> ${event.extendedProps.status}</p>
         <p><strong>Start Date:</strong> ${event.start.toLocaleDateString()}</p>
         <p><strong>End Date:</strong> ${event.end.toLocaleDateString()}</p>
         <p><strong>Arrival Time:</strong> ${event.extendedProps.arrivalTime}</p>
@@ -39,14 +40,13 @@ function showBookingDetails(event) {
         <p><strong>Guest Name:</strong> ${event.extendedProps.guestName}</p>
         <p><strong>Guest Email:</strong> ${event.extendedProps.guestEmail}</p>
         <p><strong>Number of Guests:</strong> ${event.extendedProps.numGuests}</p>
-        <p><strong>Units:</strong> ${event.extendedProps.units}</p>
         <p><strong>Catering Option:</strong> ${event.extendedProps.cateringOption}</p>
         <p><strong>Special Requests:</strong> ${event.extendedProps.specialRequests || 'None'}</p>
         <p><strong>Mobility Impaired:</strong> ${event.extendedProps.mobilityImpaired}</p>
         <p><strong>Event Manager Contact:</strong> ${event.extendedProps.eventManagerContact}</p>
         <p><strong>Offsite Emergency Contact:</strong> ${event.extendedProps.offsiteEmergencyContact}</p>
         <p><strong>Mitchell Sponsor:</strong> ${event.extendedProps.mitchellSponsor}</p>
-        <p><strong>Type of Use:</strong> ${event.extendedProps.exclusiveUse}</p>
+        <p><strong>Exclusive Use:</strong> ${event.extendedProps.exclusiveUse}</p>
         <p><strong>Organization Status:</strong> ${event.extendedProps.organizationStatus}</p>
     `;
 

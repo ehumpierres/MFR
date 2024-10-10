@@ -1,14 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from passlib.hash import argon2
+#import secrets
 
 db = SQLAlchemy()
-
-# Association table for the many-to-many relationship between Booking and Unit
-booking_units = db.Table('booking_units',
-    db.Column('booking_id', db.Integer, db.ForeignKey('booking.id'), primary_key=True),
-    db.Column('unit_id', db.Integer, db.ForeignKey('unit.id'), primary_key=True)
-)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,10 +26,11 @@ class Unit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    bookings = db.relationship('Booking', secondary=booking_units, back_populates='units')
+    bookings = db.relationship('Booking', backref='unit', lazy=True)
 
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    unit_id = db.Column(db.Integer, db.ForeignKey('unit.id'), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     arrival_time = db.Column(db.Time, nullable=False)
@@ -51,7 +47,6 @@ class Booking(db.Model):
     mitchell_sponsor = db.Column(db.String(100), nullable=False)
     exclusive_use = db.Column(db.String(20), nullable=False)
     organization_status = db.Column(db.String(50), nullable=False)
-    units = db.relationship('Unit', secondary=booking_units, back_populates='bookings')
 
 class NotificationEmail(db.Model):
     id = db.Column(db.Integer, primary_key=True)

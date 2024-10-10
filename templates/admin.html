@@ -14,7 +14,7 @@
             <thead>
                 <tr>
                     <th>Property</th>
-                    <th>Units</th>
+                    <th>Unit</th>
                     <th>Guest Name</th>
                     <th>Start Date</th>
                     <th>End Date</th>
@@ -36,12 +36,8 @@
             <tbody>
                 {% for booking in bookings %}
                     <tr data-booking-id="{{ booking.id }}">
-                        <td>{{ booking.units[0].property.name if booking.units else '' }}</td>
-                        <td>
-                            {% for unit in booking.units %}
-                                {{ unit.name }}{% if not loop.last %}, {% endif %}
-                            {% endfor %}
-                        </td>
+                        <td>{{ booking.unit.property.name }}</td>
+                        <td>{{ booking.unit.name }}</td>
                         <td>{{ booking.guest_name }}</td>
                         <td>{{ booking.start_date }}</td>
                         <td>{{ booking.end_date }}</td>
@@ -75,12 +71,7 @@
     </form>
     <ul>
         {% for email in notification_emails %}
-            <li>
-                {{ email.email }}
-                <form method="POST" action="{{ url_for('remove_notification_email', email_id=email.id) }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                </form>
-            </li>
+            <li>{{ email.email }} <a href="{{ url_for('remove_notification_email', email_id=email.id) }}" class="btn btn-danger btn-sm">Remove</a></li>
         {% endfor %}
     </ul>
 {% endblock %}
