@@ -483,6 +483,12 @@ def download_csv():
 def create_sample_data():
     logger.info("Creating sample data...")
     try:
+        # Clear existing data
+        db.session.query(Unit).delete()
+        db.session.query(Property).delete()
+        db.session.query(User).delete()
+        db.session.commit()
+
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
         cbm = Property(name="CBM", description="Firemeadow, Sunday House")
         db.session.add_all([cbc, cbm])
@@ -496,6 +502,7 @@ def create_sample_data():
             Unit(name="Kurth House", property_id=cbc.id)
         ]
         cbm_units = [
+            Unit(name="Firemeadow - ALL", property_id=cbm.id),
             Unit(name="Firemeadow - Main Lodge", property_id=cbm.id),
             Unit(name="Firemeadow - Cabin 0", property_id=cbm.id),
             Unit(name="Firemeadow - Cabin 1", property_id=cbm.id),
@@ -509,8 +516,8 @@ def create_sample_data():
             Unit(name="Firemeadow - Magnolia", property_id=cbm.id),
             Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
             Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
-            Unit(name="Sunday House", property_id=cbm.id),
-            Unit(name="Firemeadow - ALL", property_id=cbm.id)
+            Unit(name="Sunday House", property_id=cbm.id)
+            
         ]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
@@ -530,8 +537,7 @@ def create_sample_data():
 def init_db():
     with app.app_context():
         db.create_all()
-        if Property.query.count() == 0:
-            create_sample_data()
+        create_sample_data()
 
 if __name__ == '__main__':
     init_db()
