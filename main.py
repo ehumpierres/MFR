@@ -185,6 +185,14 @@ def admin():
     notification_emails = NotificationEmail.query.all()
     return render_template('admin.html', bookings=bookings, email_form=email_form, notification_emails=notification_emails)
 
+@app.route('/admin/database')
+@login_required
+@admin_required
+def admin_database():
+    properties = Property.query.all()
+    units = Unit.query.all()
+    return render_template('admin_database.html', properties=properties, units=units)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
