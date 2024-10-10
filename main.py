@@ -14,6 +14,7 @@ from io import StringIO, BytesIO
 import csv
 from email_utils import send_email, create_ical_invite
 from functools import wraps
+from wtforms.validators import ValidationError
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -92,6 +93,10 @@ def book():
     form.property_id.choices = [(p.id, p.name) for p in Property.query.all()]
     
     if form.validate_on_submit():
+        if not form.units.data:
+            flash('Please select at least one unit.', 'error')
+            return render_template('booking_form.html', form=form)
+        
         try:
             booking = Booking(
                 start_date=form.start_date.data,
@@ -170,8 +175,6 @@ def get_bookings(property_id):
     except Exception as e:
         logger.error(f"Unexpected error while fetching bookings: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
-
-# Add other route handlers and functions here
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -7,8 +7,12 @@
     <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
-            {{ form.unit_id.label }}
-            {{ form.unit_id(class="form-control") }}
+            {{ form.property_id.label }}
+            {{ form.property_id(class="form-control", id="property-select") }}
+        </div>
+        <div class="form-group">
+            {{ form.units.label }}
+            {{ form.units(class="form-control", id="unit-select", multiple=true) }}
         </div>
         <div class="form-group">
             {{ form.start_date.label }}
@@ -92,4 +96,28 @@
         </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const propertySelect = document.getElementById('property-select');
+    const unitSelect = document.getElementById('unit-select');
+
+    propertySelect.addEventListener('change', function() {
+        const propertyId = this.value;
+        fetch(`/get_units/${propertyId}`)
+            .then(response => response.json())
+            .then(units => {
+                unitSelect.innerHTML = '';
+                units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = unit.name;
+                    unitSelect.appendChild(option);
+                });
+            });
+    });
+});
+</script>
 {% endblock %}

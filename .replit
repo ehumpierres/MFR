@@ -43,6 +43,10 @@ args = "Check Migrations Folder"
 task = "workflow.run"
 args = "Remove Migrations Folder"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Create Migration"
+
 [[workflows.workflow]]
 name = "Run Flask App"
 author = "agent"
@@ -131,6 +135,17 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "rm -rf migrations"
+
+[[workflows.workflow]]
+name = "Create Migration"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flask db migrate -m 'Add booking_units table'"
 
 [deployment]
 run = ["sh", "-c", "python main.py"]

@@ -39,6 +39,7 @@ function showBookingDetails(event) {
         <p><strong>Guest Name:</strong> ${event.extendedProps.guestName}</p>
         <p><strong>Guest Email:</strong> ${event.extendedProps.guestEmail}</p>
         <p><strong>Number of Guests:</strong> ${event.extendedProps.numGuests}</p>
+        <p><strong>Units:</strong> ${event.extendedProps.units}</p>
         <p><strong>Catering Option:</strong> ${event.extendedProps.cateringOption}</p>
         <p><strong>Special Requests:</strong> ${event.extendedProps.specialRequests || 'None'}</p>
         <p><strong>Mobility Impaired:</strong> ${event.extendedProps.mobilityImpaired}</p>
@@ -64,5 +65,3 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
-
- // <p><strong>Status:</strong> ${event.extendedProps.status}</p>
