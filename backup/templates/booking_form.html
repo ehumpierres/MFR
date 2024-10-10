@@ -8,7 +8,7 @@
         {{ form.hidden_tag() }}
         <div class="form-group">
             {{ form.property_id.label }}
-            {{ form.property_id(class="form-control", id="property-select") }}
+            {{ form.property_id(class="form-control custom-select", id="property-select") }}
         </div>
         <div class="form-group">
             {{ form.units.label }}
@@ -120,4 +120,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-select {
+        height: 80px;
+        max-height: 80px;
+        overflow-y: auto;
+    }
+    
+    #property-select {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    
+    #property-select option {
+        padding: 5px;
+    }
+</style>
 {% endblock %}

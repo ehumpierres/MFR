@@ -75,7 +75,12 @@
     </form>
     <ul>
         {% for email in notification_emails %}
-            <li>{{ email.email }} <a href="{{ url_for('remove_notification_email', email_id=email.id) }}" class="btn btn-danger btn-sm">Remove</a></li>
+            <li>
+                {{ email.email }}
+                <form method="POST" action="{{ url_for('remove_notification_email', email_id=email.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+            </li>
         {% endfor %}
     </ul>
 {% endblock %}
