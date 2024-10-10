@@ -340,7 +340,12 @@ def get_bookings(property_id):
                 'start': f"{booking.start_date.isoformat()}T{booking.arrival_time.isoformat()}",
                 'end': f"{booking.end_date.isoformat()}T{booking.departure_time.isoformat()}",
                 'color': '#a8d08d' if booking.status == 'pending' else '#378006',
-                'status': booking.status
+                'status': booking.status,
+                'guestName': booking.guest_name,
+                'guestEmail': booking.guest_email,
+                'numGuests': booking.num_guests,
+                'cateringOption': booking.catering_option,
+                'specialRequests': booking.special_requests
             }
             for booking in bookings
         ]
