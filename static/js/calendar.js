@@ -17,12 +17,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 dayMaxEventRows: isMobile ? 2 : 6 // Limit number of events per day for mobile
             }
         },
-        events: '/api/bookings/' + propertyId,
+        events: function(fetchInfo, successCallback, failureCallback) {
+            fetch('/api/bookings/' + propertyId)
+                .then(response => response.json())
+                .then(data => {
+                    const events = data.map(booking => ({
+                        title: booking.guest_name,
+                        start: booking.start_date,
+                        end: booking.end_date,
+                        extendedProps: {
+                            status: booking.status,
+                            arrivalTime: booking.arrival_time,
+                            departureTime: booking.departure_time,
+                            guestEmail: booking.guest_email,
+                            numGuests: booking.num_guests,
+                            cateringOption: booking.catering_option,
+                            specialRequests: booking.special_requests,
+                            mobilityImpaired: booking.mobility_impaired,
+                            eventManagerContact: booking.event_manager_contact,
+                            offsiteEmergencyContact: booking.offsite_emergency_contact,
+                            mitchellSponsor: booking.mitchell_sponsor,
+                            exclusiveUse: booking.exclusive_use,
+                            organizationStatus: booking.organization_status
+                        }
+                    }));
+                    successCallback(events);
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    failureCallback(error);
+                });
+        },
         eventClick: function(info) {
             showBookingDetails(info.event);
         },
         eventContent: function(arg) {
-            if (isMobile && arg.view.type === 'listMonth') {
+            if (arg.view.type === 'listMonth') {
                 return {
                     html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
                 };
