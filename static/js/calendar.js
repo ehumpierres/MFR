@@ -1,28 +1,51 @@
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
+    var isMobile = window.innerWidth < 768;
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: isMobile ? 'listMonth' : 'dayGridMonth',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: isMobile ? 'listMonth,dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        views: {
+            listMonth: {
+                titleFormat: { year: 'numeric', month: 'long' }
+            }
         },
         events: '/api/bookings/' + propertyId,
         eventClick: function(info) {
             showBookingDetails(info.event);
         },
         eventContent: function(arg) {
-            let italicEl = document.createElement('i')
-            if (arg.event.extendedProps.status === 'pending') {
-                italicEl.innerHTML = 'PENDING - ' + arg.event.title
+            if (isMobile && arg.view.type === 'listMonth') {
+                return {
+                    html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
+                };
             } else {
-                italicEl.innerHTML = arg.event.title
+                let italicEl = document.createElement('i');
+                italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
+                return { domNodes: [italicEl] };
             }
-            let arrayOfDomNodes = [ italicEl ]
-            return { domNodes: arrayOfDomNodes }
         }
     });
     calendar.render();
+
+    // Adjust calendar height for mobile
+    function adjustCalendarHeight() {
+        var fcViewContainer = document.querySelector('.fc-view-harness');
+        if (fcViewContainer) {
+            fcViewContainer.style.height = isMobile ? 'auto' : '600px';
+        }
+    }
+
+    adjustCalendarHeight();
+    window.addEventListener('resize', function() {
+        isMobile = window.innerWidth < 768;
+        calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
+        adjustCalendarHeight();
+    });
 });
 
 function showBookingDetails(event) {
@@ -65,4 +88,3 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
-// useless comment
