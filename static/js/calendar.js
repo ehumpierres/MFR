@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded event fired');
+    var calendarEl = document.getElementById('calendar');
+    console.log('Calendar element:', calendarEl);
+    // ... rest of your calendar initialization code
+  
     var calendarEl = document.getElementById('calendar');
     var isMobile = window.innerWidth < 768;
 
@@ -137,3 +142,5 @@ window.onclick = function(event) {
 
 // Initial call to adjust modal for current screen size
 adjustModalForMobile();
+
+
