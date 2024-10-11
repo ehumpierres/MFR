@@ -494,13 +494,23 @@ def download_csv():
         return redirect(url_for('admin'))
 
 def create_sample_data():
+    if User.query.first() is not None:
+        logger.info("Sample data already exists. Skipping creation.")
+        return
+    
     logger.info("Creating sample data...")
     try:
         # Clear existing data
-        db.session.query(Unit).delete()
-        db.session.query(Property).delete()
-        db.session.query(User).delete()
+        Booking.query.delete()
+        Unit.query.delete()
+        Property.query.delete()
+        User.query.delete()
         db.session.commit()
+        
+        # db.session.query(Unit).delete()
+        # db.session.query(Property).delete()
+        # db.session.query(User).delete()
+        # db.session.commit() 
 
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
         cbm = Property(name="CBM", description="Firemeadow, Sunday House")
