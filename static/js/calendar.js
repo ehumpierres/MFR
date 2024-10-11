@@ -12,47 +12,14 @@ document.addEventListener('DOMContentLoaded', function() {
         views: {
             listMonth: {
                 titleFormat: { year: 'numeric', month: 'long' }
-            },
-            dayGridMonth: {
-                dayMaxEventRows: isMobile ? 2 : 6 // Limit number of events per day for mobile
             }
         },
-        events: function(fetchInfo, successCallback, failureCallback) {
-            fetch('/api/bookings/' + propertyId)
-                .then(response => response.json())
-                .then(data => {
-                    const events = data.map(booking => ({
-                        title: booking.guest_name,
-                        start: booking.start_date,
-                        end: booking.end_date,
-                        extendedProps: {
-                            status: booking.status,
-                            arrivalTime: booking.arrival_time,
-                            departureTime: booking.departure_time,
-                            guestEmail: booking.guest_email,
-                            numGuests: booking.num_guests,
-                            cateringOption: booking.catering_option,
-                            specialRequests: booking.special_requests,
-                            mobilityImpaired: booking.mobility_impaired,
-                            eventManagerContact: booking.event_manager_contact,
-                            offsiteEmergencyContact: booking.offsite_emergency_contact,
-                            mitchellSponsor: booking.mitchell_sponsor,
-                            exclusiveUse: booking.exclusive_use,
-                            organizationStatus: booking.organization_status
-                        }
-                    }));
-                    successCallback(events);
-                })
-                .catch(error => {
-                    console.error('Error fetching events:', error);
-                    failureCallback(error);
-                });
-        },
+        events: '/api/bookings/' + propertyId,
         eventClick: function(info) {
             showBookingDetails(info.event);
         },
         eventContent: function(arg) {
-            if (arg.view.type === 'listMonth') {
+            if (isMobile && arg.view.type === 'listMonth') {
                 return {
                     html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
                 };
@@ -60,14 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 let italicEl = document.createElement('i');
                 italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
                 return { domNodes: [italicEl] };
-            }
-        },
-        windowResize: function(view) {
-            var newIsMobile = window.innerWidth < 768;
-            if (newIsMobile !== isMobile) {
-                isMobile = newIsMobile;
-                calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
-                adjustCalendarHeight();
             }
         }
     });
@@ -82,9 +41,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     adjustCalendarHeight();
+    window.addEventListener('resize', function() {
+        isMobile = window.innerWidth < 768;
+        calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
+        adjustCalendarHeight();
+    });
 });
-
-// ... rest of the code (showBookingDetails and modal functions) remains unchanged
 
 function showBookingDetails(event) {
     var modal = document.getElementById('bookingModal');
