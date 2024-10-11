@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
         views: {
             listMonth: {
                 titleFormat: { year: 'numeric', month: 'long' }
+            },
+            dayGridMonth: {
+                dayMaxEventRows: isMobile ? 2 : 6 // Limit number of events per day for mobile
             }
         },
         events: '/api/bookings/' + propertyId,
@@ -28,6 +31,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
                 return { domNodes: [italicEl] };
             }
+        },
+        windowResize: function(view) {
+            var newIsMobile = window.innerWidth < 768;
+            if (newIsMobile !== isMobile) {
+                isMobile = newIsMobile;
+                calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
+                adjustCalendarHeight();
+            }
         }
     });
     calendar.render();
@@ -41,12 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     adjustCalendarHeight();
-    window.addEventListener('resize', function() {
-        isMobile = window.innerWidth < 768;
-        calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
-        adjustCalendarHeight();
-    });
 });
+
+// ... rest of the code (showBookingDetails and modal functions) remains unchanged
 
 function showBookingDetails(event) {
     var modal = document.getElementById('bookingModal');
