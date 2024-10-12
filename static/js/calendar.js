@@ -29,25 +29,15 @@ document.addEventListener('DOMContentLoaded', function() {
             showBookingDetails(info.event);
         },
         eventContent: function(arg) {
-            if (isMobile && arg.view.type === 'listMonth') {
-                return {
-                    html: `
-                        <div class="fc-event-main-frame">
-                            <div class="fc-event-title-container">
-                                <div class="fc-event-title fc-sticky">
-                                    ${arg.event.extendedProps.status === 'pending' ? '<span class="pending-tag">PENDING</span> ' : ''}
-                                    ${arg.event.title}
-                                </div>
-                            </div>
-                        </div>
-                    `
-                };
+            let italicEl = document.createElement('i')
+            if (arg.event.extendedProps.status === 'pending') {
+                italicEl.innerHTML = 'PENDING - ' + arg.event.title
             } else {
-                let italicEl = document.createElement('i');
-                italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
-                return { domNodes: [italicEl] };
+                italicEl.innerHTML = arg.event.title
             }
-        },
+            let arrayOfDomNodes = [ italicEl ]
+            return { domNodes: arrayOfDomNodes }
+        }
         longPressDelay: 100,
         eventLongPressDelay: 100,
         selectLongPressDelay: 100,
