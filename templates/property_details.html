@@ -3,107 +3,77 @@
 {% block title %}{{ property.name }}{% endblock %}
 
 {% block extra_css %}
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js'></script>
-<style>
-    /* General responsive adjustments */
-    @media (max-width: 768px) {
-        h2, h3 {
-            font-size: 1.5rem;
-        }
-        .btn {
-            display: block;
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css' rel='stylesheet' />
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
             width: 100%;
-            margin-bottom: 10px;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
         }
-    }
-
-    /* Calendar adjustments */
-    #calendar {
-        display: block;
-        height: 600px;
-        margin-top: 20px;
-    }
-    @media (max-width: 768px) {
-        .fc .fc-toolbar-title {
-            font-size: 1.2em;
-        }
-        .fc .fc-button {
-            font-size: 0.8em;
-            padding: 0.3em 0.5em;
-        }
-    }
-
-    /* Modal styling */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-        background-color: #fefefe;
-        margin: 10% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 80%;
-        max-width: 600px;
-    }
-    @media (max-width: 768px) {
         .modal-content {
-            width: 95%;
-            margin: 5% auto;
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
         }
-    }
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .close:hover,
-    .close:focus {
-        color: #000;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    /* Pending tag styling */
-    .pending-tag {
-        background-color: #ffd700;
-        color: #000;
-        padding: 2px 5px;
-        border-radius: 3px;
-        font-size: 0.8em;
-        font-weight: bold;
-    }
-
-    /* Booking details styling */
-    .booking-details p {
-        margin-bottom: 10px;
-    }
-    @media (max-width: 768px) {
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .booking-details {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
         .booking-details p {
-            font-size: 0.9em;
+            margin: 0;
+            padding: 5px 0;
         }
-    }
-
-    /* Table responsive */
-    .table-responsive {
-        overflow-x: auto;
-    }
-    @media (max-width: 768px) {
-        .table-responsive table {
-            font-size: 0.9em;
+        @media (min-width: 768px) {
+            .booking-details {
+                grid-template-columns: 1fr 1fr;
+            }
         }
-    }
-</style>
+        #calendar {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .fc-toolbar {
+            flex-wrap: wrap;
+        }
+        .fc-toolbar-chunk {
+            margin-bottom: 0.5em;
+        }
+        .fc-list-event-title {
+            white-space: normal;
+        }
+        @media (max-width: 767px) {
+        .fc-header-toolbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .fc-toolbar-chunk {
+            width: 100%;
+            margin-bottom: 0.5em;
+        } 
+      
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -158,8 +128,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    var propertyId = {{ property.id }};
-</script>
-<script src="{{ url_for('static', filename='calendar.js') }}"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js'></script>
+    <script>
+        var propertyId = {{ property.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 {% endblock %}

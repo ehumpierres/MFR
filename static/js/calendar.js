@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded event fired');
-    var calendarEl = document.getElementById('calendar');
-    console.log('Calendar element:', calendarEl);
-    // ... rest of your calendar initialization code
-  
     var calendarEl = document.getElementById('calendar');
     var isMobile = window.innerWidth < 768;
 
@@ -16,12 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         views: {
             listMonth: {
-                titleFormat: { year: 'numeric', month: 'long' },
-                eventTimeFormat: {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    meridiem: 'short'
-                }
+                titleFormat: { year: 'numeric', month: 'long' }
             }
         },
         events: '/api/bookings/' + propertyId,
@@ -29,21 +19,20 @@ document.addEventListener('DOMContentLoaded', function() {
             showBookingDetails(info.event);
         },
         eventContent: function(arg) {
-            let italicEl = document.createElement('i')
-            if (arg.event.extendedProps.status === 'pending') {
-                italicEl.innerHTML = 'PENDING - ' + arg.event.title
+            if (isMobile && arg.view.type === 'listMonth') {
+                return {
+                    html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
+                };
             } else {
-                italicEl.innerHTML = arg.event.title
+                let italicEl = document.createElement('i');
+                italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
+                return { domNodes: [italicEl] };
             }
-            let arrayOfDomNodes = [ italicEl ]
-            return { domNodes: arrayOfDomNodes }
         }
-        longPressDelay: 100,
-        eventLongPressDelay: 100,
-        selectLongPressDelay: 100,
     });
     calendar.render();
 
+    // Adjust calendar height for mobile
     function adjustCalendarHeight() {
         var fcViewContainer = document.querySelector('.fc-view-harness');
         if (fcViewContainer) {
@@ -56,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
         isMobile = window.innerWidth < 768;
         calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
         adjustCalendarHeight();
-        adjustModalForMobile();
     });
 });
 
@@ -66,55 +54,26 @@ function showBookingDetails(event) {
     var modalBody = document.getElementById('modalBody');
 
     modalTitle.textContent = event.title;
-
-    if (window.innerWidth < 768) {
-        modalBody.innerHTML = `
-            <p><strong>Dates:</strong> ${event.start.toLocaleDateString()} - ${event.end.toLocaleDateString()}</p>
-            <p><strong>Times:</strong> ${event.extendedProps.arrivalTime} - ${event.extendedProps.departureTime}</p>
-            <p><strong>Guest:</strong> ${event.extendedProps.guestName}</p>
-            <p><strong>Guests:</strong> ${event.extendedProps.numGuests}</p>
-            <p><strong>Status:</strong> ${event.extendedProps.status}</p>
-            <button onclick="showFullDetails(${JSON.stringify(event.extendedProps)})">Show Full Details</button>
-        `;
-    } else {
-        showFullDetails(event.extendedProps);
-    }
+    modalBody.innerHTML = `
+        <p><strong>Start Date:</strong> ${event.start.toLocaleDateString()}</p>
+        <p><strong>End Date:</strong> ${event.end.toLocaleDateString()}</p>
+        <p><strong>Arrival Time:</strong> ${event.extendedProps.arrivalTime}</p>
+        <p><strong>Departure Time:</strong> ${event.extendedProps.departureTime}</p>
+        <p><strong>Guest Name:</strong> ${event.extendedProps.guestName}</p>
+        <p><strong>Guest Email:</strong> ${event.extendedProps.guestEmail}</p>
+        <p><strong>Number of Guests:</strong> ${event.extendedProps.numGuests}</p>
+        <p><strong>Catering Option:</strong> ${event.extendedProps.cateringOption}</p>
+        <p><strong>Special Requests:</strong> ${event.extendedProps.specialRequests || 'None'}</p>
+        <p><strong>Mobility Impaired:</strong> ${event.extendedProps.mobilityImpaired}</p>
+        <p><strong>Event Manager Contact:</strong> ${event.extendedProps.eventManagerContact}</p>
+        <p><strong>Offsite Emergency Contact:</strong> ${event.extendedProps.offsiteEmergencyContact}</p>
+        <p><strong>Mitchell Sponsor:</strong> ${event.extendedProps.mitchellSponsor}</p>
+        <p><strong>Type of Use:</strong> ${event.extendedProps.exclusiveUse}</p>
+        <p><strong>Organization Type:</strong> ${event.extendedProps.organizationStatus}</p>
+        <p><strong>Status:</strong> ${event.extendedProps.status}</p>
+    `;
 
     modal.style.display = 'block';
-}
-
-function showFullDetails(eventProps) {
-    var modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        <p><strong>Start Date:</strong> ${eventProps.start.toLocaleDateString()}</p>
-        <p><strong>End Date:</strong> ${eventProps.end.toLocaleDateString()}</p>
-        <p><strong>Arrival Time:</strong> ${eventProps.arrivalTime}</p>
-        <p><strong>Departure Time:</strong> ${eventProps.departureTime}</p>
-        <p><strong>Guest Name:</strong> ${eventProps.guestName}</p>
-        <p><strong>Guest Email:</strong> ${eventProps.guestEmail}</p>
-        <p><strong>Number of Guests:</strong> ${eventProps.numGuests}</p>
-        <p><strong>Catering Option:</strong> ${eventProps.cateringOption}</p>
-        <p><strong>Special Requests:</strong> ${eventProps.specialRequests || 'None'}</p>
-        <p><strong>Mobility Impaired:</strong> ${eventProps.mobilityImpaired}</p>
-        <p><strong>Event Manager Contact:</strong> ${eventProps.eventManagerContact}</p>
-        <p><strong>Offsite Emergency Contact:</strong> ${eventProps.offsiteEmergencyContact}</p>
-        <p><strong>Mitchell Sponsor:</strong> ${eventProps.mitchellSponsor}</p>
-        <p><strong>Type of Use:</strong> ${eventProps.exclusiveUse}</p>
-        <p><strong>Organization Type:</strong> ${eventProps.organizationStatus}</p>
-        <p><strong>Status:</strong> ${eventProps.status}</p>
-    `;
-}
-
-function adjustModalForMobile() {
-    var modal = document.getElementById('bookingModal');
-    var modalContent = modal.querySelector('.modal-content');
-    if (window.innerWidth < 768) {
-        modalContent.style.width = '95%';
-        modalContent.style.margin = '5% auto';
-    } else {
-        modalContent.style.width = '80%';
-        modalContent.style.margin = '10% auto';
-    }
 }
 
 // Close the modal when clicking on <span> (x)
@@ -129,8 +88,4 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
-
-// Initial call to adjust modal for current screen size
-adjustModalForMobile();
-
 
