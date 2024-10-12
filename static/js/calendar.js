@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: isMobile ? 'listMonth,dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: isMobile ? 'listMonth' : 'dayGridMonth,timeGridWeek'
         },
         views: {
             listMonth: {
