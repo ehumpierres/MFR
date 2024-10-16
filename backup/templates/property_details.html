@@ -64,15 +64,15 @@
             white-space: normal;
         }
         @media (max-width: 767px) {
-        .fc-header-toolbar {
-            flex-direction: column;
-            align-items: flex-start;
+            .fc-header-toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .fc-toolbar-chunk {
+                width: 100%;
+                margin-bottom: 0.5em;
+            }
         }
-        .fc-toolbar-chunk {
-            width: 100%;
-            margin-bottom: 0.5em;
-        } 
-      
     </style>
 {% endblock %}
 
@@ -102,6 +102,7 @@
                     <th>Guest Name</th>
                     <th>Start Date</th>
                     <th>End Date</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,6 +112,7 @@
                         <td>{{ booking.guest_name }}</td>
                         <td>{{ booking.start_date.strftime('%Y-%m-%d') }}</td>
                         <td>{{ booking.end_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ booking.status.capitalize() }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
