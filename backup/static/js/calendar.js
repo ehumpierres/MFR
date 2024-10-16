@@ -2,17 +2,18 @@ document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var isMobile = window.innerWidth < 768;
 
+    // New: Check if it's mobile, if so, hide the calendar
+    if (isMobile) {
+        calendarEl.style.display = 'none';
+        return; // Exit the function early
+    }
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+        initialView: 'dayGridMonth',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: isMobile ? 'listMonth' : 'dayGridMonth,timeGridWeek'
-        },
-        views: {
-            listMonth: {
-                titleFormat: { year: 'numeric', month: 'long' }
-            }
+            right: 'dayGridMonth,timeGridWeek'
         },
         events: '/api/bookings/' + propertyId,
         eventClick: function(info) {
@@ -23,32 +24,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         eventContent: function(arg) {
-            if (isMobile && arg.view.type === 'listMonth') {
-                return {
-                    html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
-                };
-            } else {
-                let italicEl = document.createElement('i');
-                italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
-                return { domNodes: [italicEl] };
-            }
+            let italicEl = document.createElement('i');
+            italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
+            return { domNodes: [italicEl] };
         }
     });
+    
     calendar.render();
 
-    // Adjust calendar height for mobile
+    // Adjust calendar height (now only for non-mobile)
     function adjustCalendarHeight() {
         var fcViewContainer = document.querySelector('.fc-view-harness');
         if (fcViewContainer) {
-            fcViewContainer.style.height = isMobile ? 'auto' : '600px';
+            fcViewContainer.style.height = '600px';
         }
     }
 
     adjustCalendarHeight();
+    
     window.addEventListener('resize', function() {
-        isMobile = window.innerWidth < 768;
-        calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
-        adjustCalendarHeight();
+        var newIsMobile = window.innerWidth < 768;
+        if (newIsMobile !== isMobile) {
+            isMobile = newIsMobile;
+            if (isMobile) {
+                calendarEl.style.display = 'none';
+            } else {
+                calendarEl.style.display = 'block';
+                calendar.render();
+                adjustCalendarHeight();
+            }
+        }
     });
 });
 
