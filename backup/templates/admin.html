@@ -34,7 +34,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for booking in bookings %}
+                {% for booking in pending_bookings %}
                     <tr data-booking-id="{{ booking.id }}">
                         <td>{{ booking.unit.property.name }}</td>
                         <td>{{ booking.unit.name }}</td>
@@ -56,6 +56,36 @@
                         <td>
                             <a href="#" onclick="approveBooking({{ booking.id }}); return false;" class="btn btn-success btn-sm">Approve</a>
                             <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-danger btn-sm">Reject</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Approved Bookings</h3>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Unit</th>
+                    <th>Guest Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in approved_bookings %}
+                    <tr data-booking-id="{{ booking.id }}">
+                        <td>{{ booking.unit.property.name }}</td>
+                        <td>{{ booking.unit.name }}</td>
+                        <td>{{ booking.guest_name }}</td>
+                        <td>{{ booking.start_date }}</td>
+                        <td>{{ booking.end_date }}</td>
+                        <td>
+                            <a href="#" onclick="deleteBooking({{ booking.id }}); return false;" class="btn btn-danger btn-sm">Delete</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -86,11 +116,30 @@ function approveBooking(bookingId) {
             document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
             // Display a success message
             alert('Booking approved successfully');
+            // Reload the page to update the approved bookings list
+            location.reload();
         })
         .catch(error => {
             console.error('Error:', error);
             alert('An error occurred while approving the booking');
         });
+}
+
+function deleteBooking(bookingId) {
+    if (confirm('Are you sure you want to delete this booking?')) {
+        fetch(`/delete_booking/${bookingId}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                // Remove the booking from the approved list
+                document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
+                // Display a success message
+                alert('Booking deleted successfully');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the booking');
+            });
+    }
 }
 </script>
 {% endblock %}
