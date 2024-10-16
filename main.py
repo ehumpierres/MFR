@@ -5,7 +5,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_migrate import Migrate
 from flask_mail import Mail 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text, create_engine
+from sqlalchemy import text, create_engine, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 from datetime import datetime, date, time, timedelta
@@ -173,7 +173,7 @@ def property_details(property_id):
     property = Property.query.get_or_404(property_id)
     upcoming_bookings = Booking.query.join(Unit).filter(
         Unit.property_id == property_id,
-        Booking.status == 'approved',
+        or_(Booking.status == 'approved', Booking.status == 'pending'),
         Booking.start_date >= date.today()
     ).order_by(Booking.start_date).all()
     return render_template('property_details.html', property=property, upcoming_bookings=upcoming_bookings)
