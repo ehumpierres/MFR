@@ -1,50 +1,42 @@
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var isMobile = window.innerWidth < 768;
-    var calendar;
 
-    function initializeCalendar() {
-        if (isMobile) {
-            calendarEl.innerHTML = '<p>Calendar view is not available on mobile devices. Please use the Upcoming Bookings list below.</p>';
-        } else {
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                },
-                views: {
-                    listMonth: {
-                        titleFormat: { year: 'numeric', month: 'long' }
-                    }
-                },
-                events: '/api/bookings/' + propertyId,
-                eventClick: function(info) {
-                    if (isAdmin) {
-                        showBookingDetails(info.event);
-                    } else {
-                        alert('Booking details are only visible to administrators.');
-                    }
-                },
-                eventContent: function(arg) {
-                    let italicEl = document.createElement('i');
-                    if (arg.event.extendedProps.status === 'pending') {
-                        italicEl.innerHTML = 'PENDING - ' + arg.event.title;
-                        arg.event.setProp('backgroundColor', '#FFA500'); // Orange for pending
-                    } else {
-                        italicEl.innerHTML = arg.event.title;
-                        arg.event.setProp('backgroundColor', '#378006'); // Green for approved
-                    }
-                    return { domNodes: [italicEl] };
-                }
-            });
-            calendar.render();
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: isMobile ? 'listMonth' : 'dayGridMonth,timeGridWeek'
+        },
+        views: {
+            listMonth: {
+                titleFormat: { year: 'numeric', month: 'long' }
+            }
+        },
+        events: '/api/bookings/' + propertyId,
+        eventClick: function(info) {
+            if (isAdmin) {
+                showBookingDetails(info.event);
+            } else {
+                alert('Booking details are only visible to administrators.');
+            }
+        },
+        eventContent: function(arg) {
+            if (isMobile && arg.view.type === 'listMonth') {
+                return {
+                    html: `<div class="fc-event-title">${arg.event.extendedProps.status === 'pending' ? 'PENDING - ' : ''}${arg.event.title}</div>`
+                };
+            } else {
+                let italicEl = document.createElement('i');
+                italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
+                return { domNodes: [italicEl] };
+            }
         }
-    }
+    });
+    calendar.render();
 
-    initializeCalendar();
-
+    // Adjust calendar height for mobile
     function adjustCalendarHeight() {
         var fcViewContainer = document.querySelector('.fc-view-harness');
         if (fcViewContainer) {
@@ -53,19 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     adjustCalendarHeight();
-
     window.addEventListener('resize', function() {
         isMobile = window.innerWidth < 768;
-        if (isMobile) {
-            if (calendar) {
-                calendar.destroy();
-                calendar = null;
-            }
-            calendarEl.innerHTML = '<p>Calendar view is not available on mobile devices. Please use the Upcoming Bookings list below.</p>';
-        } else {
-            calendarEl.innerHTML = '';
-            initializeCalendar();
-        }
+        calendar.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
         adjustCalendarHeight();
     });
 });
@@ -98,10 +80,12 @@ function showBookingDetails(event) {
     modal.style.display = 'block';
 }
 
+// Close the modal when clicking on <span> (x)
 document.querySelector('.close').onclick = function() {
     document.getElementById('bookingModal').style.display = 'none';
 }
 
+// Close the modal when clicking outside of it
 window.onclick = function(event) {
     var modal = document.getElementById('bookingModal');
     if (event.target == modal) {
