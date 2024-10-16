@@ -34,7 +34,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for booking in pending_bookings %}
+                {% for booking in bookings %}
                     <tr data-booking-id="{{ booking.id }}">
                         <td>{{ booking.unit.property.name }}</td>
                         <td>{{ booking.unit.name }}</td>
@@ -63,46 +63,6 @@
         </table>
     </div>
 
-    <h3>Upcoming Bookings</h3>
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Property</th>
-                    <th>Unit</th>
-                    <th>Guest Name</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Arrival Time</th>
-                    <th>Departure Time</th>
-                    <th>Guest Email</th>
-                    <th>Number of Guests</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for booking in upcoming_bookings %}
-                    <tr data-booking-id="{{ booking.id }}">
-                        <td>{{ booking.unit.property.name }}</td>
-                        <td>{{ booking.unit.name }}</td>
-                        <td>{{ booking.guest_name }}</td>
-                        <td>{{ booking.start_date }}</td>
-                        <td>{{ booking.end_date }}</td>
-                        <td>{{ booking.arrival_time }}</td>
-                        <td>{{ booking.departure_time }}</td>
-                        <td>{{ booking.guest_email }}</td>
-                        <td>{{ booking.num_guests }}</td>
-                        <td>{{ booking.status.capitalize() }}</td>
-                        <td>
-                            <a href="#" onclick="deleteBooking({{ booking.id }}); return false;" class="btn btn-danger btn-sm">Delete</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
     <h3>Notification Emails</h3>
     <form method="POST" action="{{ url_for('add_notification_email') }}">
         {{ email_form.hidden_tag() }}
@@ -122,28 +82,15 @@ function approveBooking(bookingId) {
     fetch(`/approve/${bookingId}`, { method: 'POST' })
         .then(response => response.json())
         .then(data => {
+            // Remove the booking from the pending list
             document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
+            // Display a success message
             alert('Booking approved successfully');
         })
         .catch(error => {
             console.error('Error:', error);
             alert('An error occurred while approving the booking');
         });
-}
-
-function deleteBooking(bookingId) {
-    if (confirm('Are you sure you want to delete this booking?')) {
-        fetch(`/delete_booking/${bookingId}`, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                document.querySelector(`tr[data-booking-id="${bookingId}"]`).remove();
-                alert('Booking deleted successfully');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while deleting the booking');
-            });
-    }
 }
 </script>
 {% endblock %}
@@ -155,7 +102,7 @@ function deleteBooking(bookingId) {
         max-width: 100%;
     }
     .table {
-        min-width: 1500px;
+        min-width: 1500px; /* Adjust this value based on the total width of all columns */
     }
 </style>
 {% endblock %}

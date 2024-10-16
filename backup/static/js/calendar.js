@@ -29,13 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 eventContent: function(arg) {
                     let italicEl = document.createElement('i');
-                    if (arg.event.extendedProps.status === 'pending') {
-                        italicEl.innerHTML = 'PENDING - ' + arg.event.title;
-                        arg.event.setProp('color', '#FFA500'); // Orange for pending
-                    } else {
-                        italicEl.innerHTML = arg.event.title;
-                        arg.event.setProp('color', '#378006'); // Green for approved
-                    }
+                    italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
                     return { domNodes: [italicEl] };
                 }
             });
