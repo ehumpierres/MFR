@@ -224,9 +224,10 @@ def book():
 @admin_required
 def admin():
     pending_bookings = Booking.query.filter_by(status='pending').join(Unit).join(Property).all()
+    approved_bookings = Booking.query.filter_by(status='approved').join(Unit).join(Property).all()
     email_form = NotificationEmailForm()
     notification_emails = NotificationEmail.query.all()
-    return render_template('admin.html', bookings=pending_bookings, email_form=email_form, notification_emails=notification_emails)
+    return render_template('admin.html', pending_bookings=pending_bookings, approved_bookings=approved_bookings, email_form=email_form, notification_emails=notification_emails)
 
 @app.route('/admin/add_notification_email', methods=['POST'])
 @login_required
@@ -492,6 +493,20 @@ def download_csv():
         logger.error(f"Error generating CSV: {str(e)}")
         flash('An error occurred while generating the CSV file.', 'error')
         return redirect(url_for('admin'))
+
+@app.route('/delete_booking/<int:booking_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_booking(booking_id):
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        db.session.delete(booking)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Booking deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting booking: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while deleting the booking'}), 500
 
 def create_sample_data():
     if User.query.first() is not None:
