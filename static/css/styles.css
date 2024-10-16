@@ -88,4 +88,12 @@ input[type="submit"]:hover {
     .property-card {
         width: 100%;
     }
+
+    #calendar {
+        display: none;
+    }
+
+    .fc-toolbar {
+        display: none;
+    }
 }
