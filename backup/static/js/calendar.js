@@ -29,11 +29,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 eventContent: function(arg) {
                     let italicEl = document.createElement('i');
-                    italicEl.innerHTML = arg.event.extendedProps.status === 'pending' ? 'PENDING - ' + arg.event.title : arg.event.title;
-
-                    // Set the background color based on the event status
-                    let backgroundColor = arg.event.extendedProps.status === 'pending' ? 'lightyellow' : 'lightgreen';
-                    return { domNodes: [italicEl], backgroundColor: backgroundColor };
+                    if (arg.event.extendedProps.status === 'pending') {
+                        italicEl.innerHTML = 'PENDING - ' + arg.event.title;
+                        arg.event.setProp('color', '#FFA500'); // Orange for pending
+                    } else {
+                        italicEl.innerHTML = arg.event.title;
+                        arg.event.setProp('color', '#378006'); // Green for approved
+                    }
+                    return { domNodes: [italicEl] };
                 }
             });
             calendar.render();
