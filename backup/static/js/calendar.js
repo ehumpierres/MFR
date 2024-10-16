@@ -16,7 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         events: '/api/bookings/' + propertyId,
         eventClick: function(info) {
-            showBookingDetails(info.event);
+            if (isAdmin) {
+                showBookingDetails(info.event);
+            } else {
+                alert('Booking details are only visible to administrators.');
+            }
         },
         eventContent: function(arg) {
             if (isMobile && arg.view.type === 'listMonth') {
@@ -88,4 +92,3 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
-
