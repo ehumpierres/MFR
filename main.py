@@ -224,9 +224,13 @@ def book():
 @admin_required
 def admin():
     pending_bookings = Booking.query.filter_by(status='pending').join(Unit).join(Property).all()
+    upcoming_bookings = Booking.query.filter(
+        Booking.start_date >= date.today(),
+        Booking.status.in_(['approved', 'pending'])
+    ).join(Unit).join(Property).order_by(Booking.start_date).all()
     email_form = NotificationEmailForm()
     notification_emails = NotificationEmail.query.all()
-    return render_template('admin.html', bookings=pending_bookings, email_form=email_form, notification_emails=notification_emails)
+    return render_template('admin.html', pending_bookings=pending_bookings, upcoming_bookings=upcoming_bookings, email_form=email_form, notification_emails=notification_emails)
 
 @app.route('/admin/add_notification_email', methods=['POST'])
 @login_required
@@ -493,6 +497,24 @@ def download_csv():
         flash('An error occurred while generating the CSV file.', 'error')
         return redirect(url_for('admin'))
 
+@app.route('/delete_booking/<int:booking_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_booking(booking_id):
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        db.session.delete(booking)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Booking deleted successfully'})
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Database error while deleting booking: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while deleting the booking'}), 500
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Unexpected error while deleting booking: {str(e)}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred'}), 500
+
 def create_sample_data():
     if User.query.first() is not None:
         logger.info("Sample data already exists. Skipping creation.")
@@ -507,11 +529,6 @@ def create_sample_data():
         User.query.delete()
         db.session.commit()
         
-        # db.session.query(Unit).delete()
-        # db.session.query(Property).delete()
-        # db.session.query(User).delete()
-        # db.session.commit() 
-
         cbc = Property(name="CBC", description="Log Cabin, Pavilion, Deerfield, Kurth Annex, Kurth House")
         cbm = Property(name="CBM", description="Firemeadow, Sunday House")
         db.session.add_all([cbc, cbm])
@@ -540,7 +557,6 @@ def create_sample_data():
             Unit(name="Firemeadow - Pinehurst", property_id=cbm.id),
             Unit(name="Firemeadow - Montgomery", property_id=cbm.id),
             Unit(name="Sunday House", property_id=cbm.id)
-            
         ]
         db.session.add_all(cbc_units + cbm_units)
         db.session.commit()
