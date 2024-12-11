@@ -18,6 +18,12 @@ def send_email_with_retry(subject: str, body: str, recipients: List[str],
     retry_count = 0
     while retry_count < max_retries:
         try:
+            # Log attempt
+            current_app.logger.info(f"Email sending attempt {retry_count + 1} of {max_retries}")
+            current_app.logger.info(f"Using SMTP server: {current_app.config['MAIL_SERVER']}:{current_app.config['MAIL_PORT']}")
+            current_app.logger.info(f"Sending from: {current_app.config['MAIL_USERNAME']}")
+            current_app.logger.info(f"Recipients: {recipients}")
+
             # Create MIME message
             msg = MIMEMultipart()
             msg['Subject'] = subject
@@ -38,15 +44,22 @@ def send_email_with_retry(subject: str, body: str, recipients: List[str],
                     'attachment; filename="event.ics"'
                 )
                 msg.attach(cal_attachment)
+                current_app.logger.info("Calendar attachment added to email")
 
             # Setup SMTP connection with TLS for Outlook
+            current_app.logger.info("Establishing SMTP connection...")
             with smtplib.SMTP(current_app.config['MAIL_SERVER'], 
                             current_app.config['MAIL_PORT']) as server:
+                current_app.logger.info("Starting TLS...")
                 server.starttls()  # Enable TLS
+                
+                current_app.logger.info("Attempting SMTP login...")
                 server.login(
                     current_app.config['MAIL_USERNAME'],
                     current_app.config['MAIL_PASSWORD']
                 )
+                
+                current_app.logger.info("Sending message...")
                 server.send_message(msg)
 
             current_app.logger.info(f"Email sent successfully to {recipients}")
@@ -54,6 +67,8 @@ def send_email_with_retry(subject: str, body: str, recipients: List[str],
 
         except smtplib.SMTPAuthenticationError as e:
             current_app.logger.error(f"SMTP Authentication failed: {str(e)}")
+            current_app.logger.error(f"Username used: {current_app.config['MAIL_USERNAME']}")
+            current_app.logger.error("Please check your email credentials")
             return False  # Don't retry for auth errors
 
         except (smtplib.SMTPException, ConnectionError) as e:
@@ -62,15 +77,14 @@ def send_email_with_retry(subject: str, body: str, recipients: List[str],
                 current_app.logger.error(f"Failed to send email after {max_retries} attempts: {str(e)}")
                 return False
             
-            # Exponential backoff: 2, 4, 8 seconds between retries
             wait_time = 2 ** retry_count
             current_app.logger.warning(
-                f"Email sending attempt {retry_count} failed. Retrying in {wait_time} seconds..."
+                f"Email sending attempt {retry_count} failed. Retrying in {wait_time} seconds... Error: {str(e)}"
             )
             time.sleep(wait_time)
 
         except Exception as e:
-            current_app.logger.error(f"Unexpected error sending email: {str(e)}")
+            current_app.logger.error(f"Unexpected error sending email: {str(e)}", exc_info=True)
             return False
 
 def create_ical_invite(booking) -> bytes:

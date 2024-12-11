@@ -62,6 +62,14 @@ def generate_ical(booking):
 
 def notify_admins(booking):
     try:
+        # First check if we have any admin emails
+        admin_emails = [email.email for email in NotificationEmail.query.all()]
+        logger.info(f"Found {len(admin_emails)} admin email(s): {admin_emails}")
+        
+        if not admin_emails:
+            logger.error("No admin emails configured in the system")
+            return False
+
         subject = f"New Booking Request: {booking.guest_name}"
         body = f"""A new booking request has been submitted:
 Guest: {booking.guest_name}
@@ -79,19 +87,27 @@ Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
 
-        admin_emails = [email.email for email in NotificationEmail.query.all()]
-        if not admin_emails:
-            logger.warning("No admin emails found. Skipping admin notification.")
-            return False
-
-        ical_attachment = create_ical_invite(booking)
+        # Log email details (excluding sensitive info)
+        logger.info(f"Attempting to send admin notification email to {len(admin_emails)} recipients")
+        logger.info(f"Email subject: {subject}")
         
+        # Create calendar invite
+        ical_attachment = create_ical_invite(booking)
+        if not ical_attachment:
+            logger.warning("Failed to create calendar invite, sending email without attachment")
+        
+        # Attempt to send email
         result = send_email_with_retry(subject, body, admin_emails, ical_attachment)
-        logger.info(f"Admin notification result: {result}")
+        
+        if result:
+            logger.info("Admin notification email sent successfully")
+        else:
+            logger.error("Failed to send admin notification email")
+            
         return result
 
     except Exception as e:
-        logger.error(f'Error in notify_admins for booking {booking.id}: {str(e)}')
+        logger.error(f'Error in notify_admins for booking {booking.id}: {str(e)}', exc_info=True)
         return False
 
 def notify_guest(booking):
