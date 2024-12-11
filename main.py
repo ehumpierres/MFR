@@ -15,7 +15,7 @@ from config import Config
 import logging
 from io import StringIO, BytesIO
 import csv
-from email_utils import send_email, create_ical_invite
+from email_utils import send_email_with_retry, create_ical_invite
 import secrets
 from functools import wraps
 from icalendar import Calendar, Event
@@ -78,29 +78,26 @@ Offsite Emergency Contact: {booking.offsite_emergency_contact}
 Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
+
         admin_emails = [email.email for email in NotificationEmail.query.all()]
-        logger.debug(f"Number of admin emails fetched: {len(admin_emails)}")
-        
         if not admin_emails:
             logger.warning("No admin emails found. Skipping admin notification.")
             return False
 
-        ical_attachment = generate_ical(booking)
-        if not ical_attachment:
-            logger.error("Failed to generate iCal attachment")
-            return False
-
-        result = send_email(subject, body, admin_emails, ical_attachment)
-        logger.debug(f"Result of sending admin notification: {result}")
+        ical_attachment = create_ical_invite(booking)
+        
+        result = send_email_with_retry(subject, body, admin_emails, ical_attachment)
+        logger.info(f"Admin notification result: {result}")
         return result
+
     except Exception as e:
-        logger.error(f'Error notifying admins for booking {booking.id}: {str(e)}')
+        logger.error(f'Error in notify_admins for booking {booking.id}: {str(e)}')
         return False
 
 def notify_guest(booking):
     try:
         subject = f"Booking {booking.status.capitalize()}: {booking.unit.property.name}"
-        body = f"""{booking.guest_name} your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
+        body = f"""{booking.guest_name}, your booking request for {booking.unit.name} from {booking.start_date} to {booking.end_date} has been {booking.status}.
 Arrival Time: {booking.arrival_time}
 Departure Time: {booking.departure_time}
 Number of Guests: {booking.num_guests}
@@ -112,9 +109,8 @@ Offsite Emergency Contact: {booking.offsite_emergency_contact}
 Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
-        
-        ical_attachment = generate_ical(booking) if booking.status == 'approved' else None
 
+        ical_attachment = create_ical_invite(booking) if booking.status == 'approved' else None
         recipients = [booking.guest_email]
 
         if booking.status == 'approved':
@@ -122,9 +118,12 @@ Organization Status: {booking.organization_status}"""
             if admin_emails:
                 recipients.extend(admin_emails)
 
-        return send_email(subject, body, recipients, ical_attachment)
+        result = send_email_with_retry(subject, body, recipients, ical_attachment)
+        logger.info(f"Guest notification result: {result}")
+        return result
+
     except Exception as e:
-        logger.error(f'Error notifying guest for booking {booking.id}: {str(e)}')
+        logger.error(f'Error in notify_guest for booking {booking.id}: {str(e)}')
         return False
 
 @app.route('/')
