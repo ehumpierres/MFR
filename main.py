@@ -62,15 +62,25 @@ def generate_ical(booking):
 
 def notify_admins(booking):
     try:
+        logger.info(f"Starting notify_admins for booking ID: {booking.id}")
+        
         # First check if we have any admin emails
         admin_emails = [email.email for email in NotificationEmail.query.all()]
         logger.info(f"Found {len(admin_emails)} admin email(s): {admin_emails}")
         
         if not admin_emails:
-            logger.error("No admin emails configured in the system")
+            logger.error("No admin emails configured in the system. Please add admin emails through the admin interface.")
+            flash('Warning: No admin emails configured. Please configure admin notification emails.', 'warning')
+            return False
+
+        # Check if environment variables are set
+        if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+            logger.error("MAIL_USERNAME or MAIL_PASSWORD not configured")
             return False
 
         subject = f"New Booking Request: {booking.guest_name}"
+        logger.info(f"Preparing email for booking {booking.id} by {booking.guest_name}")
+        
         body = f"""A new booking request has been submitted:
 Guest: {booking.guest_name}
 Unit: {booking.unit.name}
@@ -87,27 +97,39 @@ Mitchell Sponsor: {booking.mitchell_sponsor}
 Exclusive Use: {booking.exclusive_use}
 Organization Status: {booking.organization_status}"""
 
-        # Log email details (excluding sensitive info)
-        logger.info(f"Attempting to send admin notification email to {len(admin_emails)} recipients")
-        logger.info(f"Email subject: {subject}")
+        # Log SMTP configuration
+        logger.info(f"SMTP Configuration:")
+        logger.info(f"Server: {current_app.config['MAIL_SERVER']}")
+        logger.info(f"Port: {current_app.config['MAIL_PORT']}")
+        logger.info(f"TLS: {current_app.config.get('MAIL_USE_TLS', False)}")
+        logger.info(f"SSL: {current_app.config.get('MAIL_USE_SSL', False)}")
+        logger.info(f"Username configured: {'Yes' if current_app.config['MAIL_USERNAME'] else 'No'}")
+        logger.info(f"Password configured: {'Yes' if current_app.config['MAIL_PASSWORD'] else 'No'}")
         
         # Create calendar invite
+        logger.info("Creating calendar invite...")
         ical_attachment = create_ical_invite(booking)
         if not ical_attachment:
             logger.warning("Failed to create calendar invite, sending email without attachment")
+        else:
+            logger.info("Calendar invite created successfully")
         
         # Attempt to send email
+        logger.info(f"Attempting to send email to {len(admin_emails)} admin(s)")
         result = send_email_with_retry(subject, body, admin_emails, ical_attachment)
         
         if result:
             logger.info("Admin notification email sent successfully")
+            flash('Admin notification sent successfully', 'success')
         else:
             logger.error("Failed to send admin notification email")
+            flash('Failed to send admin notification', 'error')
             
         return result
 
     except Exception as e:
         logger.error(f'Error in notify_admins for booking {booking.id}: {str(e)}', exc_info=True)
+        flash('Error sending admin notification', 'error')
         return False
 
 def notify_guest(booking):
@@ -591,6 +613,46 @@ def init_db():
     with app.app_context():
         db.create_all()
         create_sample_data()
+
+@app.route('/test_admin_email')
+@login_required
+@admin_required
+def test_admin_email():
+    try:
+        test_unit = Unit.query.first()
+        if not test_unit:
+            return "No units available for testing", 400
+
+        test_booking = Booking(
+            unit_id=test_unit.id,
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=10),
+            arrival_time=datetime.now().time(),
+            departure_time=(datetime.now() + timedelta(hours=3)).time(),
+            guest_name="Test Guest",
+            guest_email="ernesto.humpierres@gmail.com",
+            num_guests=2,
+            catering_option="Test Catering",
+            special_requests="Test request",
+            mobility_impaired=False,
+            event_manager_contact="Test Manager",
+            offsite_emergency_contact="Test Emergency",
+            mitchell_sponsor="Test Sponsor",
+            exclusive_use="Test Use",
+            organization_status="Test Status",
+            status='pending'
+        )
+
+        # Don't save to database, just test notification
+        logger.info("Testing admin notification with test booking")
+        if notify_admins(test_booking):
+            return "Test admin notification sent successfully. Please check admin email(s)."
+        else:
+            return "Failed to send test admin notification. Check logs for details.", 500
+
+    except Exception as e:
+        logger.error(f"Failed to send test admin email: {str(e)}", exc_info=True)
+        return f"Failed to send test admin email: {str(e)}", 500
 
 if __name__ == '__main__':
     init_db()
